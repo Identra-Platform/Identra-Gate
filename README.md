@@ -673,3 +673,142 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     }
   }
   ```
+
+### Trusted Issuers Management
+- `GET /issuers`: List all trusted issuers
+  ```
+  Query params: ?verified=true&limit=20&page=1
+  ```
+  ```json
+  // Response
+  {
+    "issuers": [
+      {
+        "id": "iss_123",
+        "did": "did:key:z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP",
+        "name": "University of Example",
+        "domain": "example.edu",
+        "status": "verified",
+        "verifiedAt": "2024-01-15T10:30:00Z",
+        "trustLevel": "high",
+        "credentialTypes": ["degree", "student_id"],
+        "createdAt": "2024-01-15T10:30:00Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 45,
+      "pages": 3
+    }
+  }
+  ```
+- `POST /issuers`: Add new trusted issuer
+  ```json
+  // Request
+  {
+    "did": "did:key:z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP",
+    "name": "University of Example",
+    "domain": "example.edu",
+    "contactEmail": "trust@example.edu",
+    "trustLevel": "high",
+    "credentialTypes": ["degree", "student_id"],
+    "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----",
+    "verificationMethod": "did:key:z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP#z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP",
+    "metadata": {
+      "institutionType": "university",
+      "accreditation": "regional",
+      "country": "US"
+    }
+  }
+  ```
+  ```json
+  // Response
+  {
+    "success": true,
+    "issuer": {
+      "id": "iss_123",
+      "did": "did:key:z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP",
+      "name": "University of Example",
+      "status": "pending",
+      "createdAt": "2024-01-15T10:30:00Z"
+    },
+    "message": "Issuer added for verification"
+  }
+  ```
+- `GET /issuers/:id`: Get issuer by ID
+  ```
+  URL param: id
+  ```
+  ```json
+  // Response
+  {
+    "id": "iss_123",
+    "did": "did:key:z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP",
+    "name": "University of Example",
+    "domain": "example.edu",
+    "contactEmail": "trust@example.edu",
+    "status": "verified",
+    "trustLevel": "high",
+    "credentialTypes": ["degree", "student_id"],
+    "verificationStatus": {
+      "didVerified": true,
+      "domainVerified": true,
+      "signatureVerified": true
+    },
+    "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----",
+    "verificationMethod": "did:key:z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP#z6Mkf5rGMoatrSj1f4CyvuHBeXJELe9RPdzo2PKGNCKVtZxP",
+    "metadata": {
+      "institutionType": "university",
+      "accreditation": "regional",
+      "country": "US",
+      "established": 1990
+    },
+    "verifiedAt": "2024-01-15T10:30:00Z",
+    "verifiedBy": "admin@example.com",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-15T10:30:00Z"
+  }
+  ```
+- `PUT /issuers/:id`: Update issuer information
+  ```json
+  // Request
+  {
+    "trustLevel": "medium",
+    "credentialTypes": ["degree", "student_id", "transcript"],
+    "status": "suspended",
+    "suspensionReason": "Security concerns",
+    "metadata": {
+      "institutionType": "university",
+      "accreditation": "regional",
+      "country": "US",
+      "established": 1990,
+      "contactPerson": "John Doe"
+    }
+  }
+  ```
+  ```json
+  // Response
+  {
+    "success": true,
+    "issuer": {
+      "id": "iss_123",
+      "trustLevel": "medium",
+      "status": "suspended",
+      "updatedAt": "2024-01-15T11:30:00Z"
+    },
+    "message": "Issuer updated successfully"
+  }
+  ```
+- `DELETE /issuers/:id`: Remove trusted issuer
+  ```
+  URL param: id
+  ```
+  ```json
+  // Response
+  {
+    "success": true,
+    "message": "Issuer removed from trusted list",
+    "removedAt": "2024-01-15T11:30:00Z"
+  }
+  ```
