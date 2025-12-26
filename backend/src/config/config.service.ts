@@ -67,6 +67,12 @@ export interface LoggingConfig {
   maxFiles: string;
 }
 
+export interface AgentConfig {
+  label: string;
+  walletId: string;
+  walletKey: string;
+  autoAcceptConnections: boolean;
+}
 
 export interface AppConfig {
   database: DatabaseConfig;
@@ -77,7 +83,9 @@ export interface AppConfig {
   dids: DIDsConfig;
   email: EmailConfig;
   logging: LoggingConfig;
+  agent: AgentConfig;
 }
+
 
 @Injectable()
 export class ConfigService {
@@ -146,7 +154,12 @@ export class ConfigService {
       LOG_LEVEL: Joi.string().valid('error', 'warn', 'info', 'debug', 'verbose').default('info'),
       LOG_FILE_PATH: Joi.string().default('./logs'),
       LOG_MAX_SIZE: Joi.string().default('10m'),
-      LOG_MAX_FILES: Joi.string().default('30d')
+      LOG_MAX_FILES: Joi.string().default('30d'),
+
+      AGENT_LABEL: Joi.string().default('Identra Agent'),
+      AGENT_WALLET_ID: Joi.string().required(),
+      AGENT_WALLET_KEY: Joi.string().min(32).required(),
+      AGENT_AUTO_ACCEPT: Joi.boolean().default(true)
     })
     .unknown(true)
     .custom((value, helpers) => {
@@ -228,6 +241,12 @@ export class ConfigService {
         maxSize: validatedEnv.LOG_MAX_SIZE,
         maxFiles: validatedEnv.LOG_MAX_FILES,
       },
+      agent: {
+        label: validatedEnv.AGENT_LABEL,
+        walletId: validatedEnv.AGENT_WALLET_ID,
+        walletKey: validatedEnv.AGENT_WALLET_KEY,
+        autoAcceptConnections: validatedEnv.AGENT_AUTO_ACCEPT
+      }
     };
   }
 
@@ -261,6 +280,10 @@ export class ConfigService {
 
   get logging(): LoggingConfig {
     return this.config.logging;
+  }
+
+  get agent(): AgentConfig {
+    return this.config.agent;
   }
 
   get all(): AppConfig {
