@@ -160,8 +160,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
   //Request
   {
     "email": "user@example.com",
-    "password": "UserPass123!",
-    "rememberMe": false
+    "password": "UserPass123!"
   }
   ```
   ```json
@@ -174,7 +173,10 @@ A lightweight web platform for organizations to issue, verify, and manage decent
       "id": "usr_456",
       "email": "user@example.com",
       "name": "User Name",
-      "role": "user"
+      "roles": [
+        "issuer",
+        "verifier"
+      ]
     }
   }
   ```
