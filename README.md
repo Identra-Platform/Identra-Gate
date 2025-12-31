@@ -6,11 +6,85 @@ A lightweight web platform for organizations to issue, verify, and manage decent
 ### Setup:
 - `GET /health`: Server health check:
   ```json
-  //Response
+  // Response
   {
-    "status": "ok",
+    "status": "up" | "down" | "warning" | "unknown",
     "timestamp": "2024-01-15T10:30:00Z",
-    "version": "1.0.0"
+    "uptime": "7 days, 3 hours, 15 minutes",
+    "environment": "production",
+    "checks": [
+      {
+        "name": "database",
+        "status": "up" | "down" | "warning" | "unknown",
+        "responseTime": 45,
+        "required": true,
+        "lastCheck": "2024-01-15T10:30:00Z",
+        "error": null,
+        "details": {
+          "host": "localhost",
+          "database": "verifier_db",
+          "connection": "connected",
+          "poolSize": 10,
+          "version": "14.0.0"
+        }
+      },
+      {
+        "name": "filesystem",
+        "status": "up",
+        "responseTime": 2,
+        "required": true,
+        "lastCheck": "2024-01-15T10:30:00Z"
+      }
+    ],
+    "services": [
+      {
+        "name": "database",
+        "status": "up",
+        "responseTime": 45,
+        "required": true,
+        "lastCheck": "2024-01-15T10:30:00Z"
+      }
+    ],
+    "metrics": {
+      "cpu": {
+        "loadAverage": {
+          "1": 0.75,
+          "5": 0.68,
+          "15": 0.62
+        },
+        "cores": 8,
+        "model": "Intel(R) Xeon(R) CPU"
+      },
+      "memory": {
+        "total": "16 GB",
+        "free": "8 GB",
+        "used": "8 GB",
+        "usagePercent": 50
+      },
+      "os": {
+        "platform": "linux",
+        "release": "5.15.0-91-generic",
+        "type": "Linux",
+        "arch": "x64",
+        "uptime": 612900
+      },
+      "process": {
+        "pid": 12345,
+        "uptime": 612900,
+        "memoryUsage": {
+          "rss": 256000000,
+          "heapTotal": 192000000,
+          "heapUsed": 128000000,
+          "external": 32000000,
+          "arrayBuffers": 8000000
+        },
+        "version": "18.17.0"
+      },
+      "network": {
+        "hostname": "verifier-server",
+        "externalIPs": ["203.0.113.45", "2001:db8::1"]
+      }
+    }
   }
   ```
 - `GET /setup/status`: Check if setup is required
@@ -338,8 +412,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "validityDays": 7,
     "design": {
       "backgroundColor": "#ffffff",
-      "textColor": "#000000",
-      "logoUrl": "/logos/company.png"
+      "textColor": "#000000"
     }
   }
   ```
