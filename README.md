@@ -205,18 +205,6 @@ A lightweight web platform for organizations to issue, verify, and manage decent
   ```
 
 ### User Management
-- `GET /users/me`: Get current user
-  ```json
-  //Response
-  {
-    "id": "usr_456",
-    "email": "user@example.com",
-    "name": "User Name",
-    "role": "user",
-    "createdAt": "2024-01-15T10:30:00Z",
-    "lastLogin": "2024-01-15T10:30:00Z"
-  }
-  ```
 - `GET /users`: List users
   ```
   Query Params: ?page=1&limit=20&search=john&role=admin
@@ -248,8 +236,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "email": "newuser@example.com",
     "name": "New User",
     "password": "TempPass123!",
-    "role": "user",
-    "sendWelcomeEmail": true
+    "role": "user"
   }
   ```
   ```json
@@ -313,21 +300,6 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "message": "User deleted successfully"
   }
   ```
-- `POST /users/:id/roles`: Update user roles
-  ```json
-  // Request
-  {
-    "role": "admin",
-    "reason": "Promoted to administrator"
-  }
-  ```
-  ```json
-  // Response
-  {
-    "success": true,
-    "message": "User role updated to admin"
-  }
-  ```
 
 ### Server Audit
 - `GET /logs`: Get server logs
@@ -359,18 +331,12 @@ A lightweight web platform for organizations to issue, verify, and manage decent
   {
     "users": {
       "total": 150,
-      "active": 120,
-      "newToday": 5
+      "active": 120
     },
     "credentials": {
       "issued": 1000,
       "verified": 850,
       "revoked": 20
-    },
-    "system": {
-      "uptime": "7 days",
-      "memoryUsage": "65%",
-      "cpuLoad": "30%"
     }
   }
   ```
@@ -411,11 +377,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
         {"name": "validUntil", "type": "date", "required": true}
       ]
     },
-    "validityDays": 7,
-    "design": {
-      "backgroundColor": "#ffffff",
-      "textColor": "#000000"
-    }
+    "validityDays": 7
   }
   ```
   ```json
@@ -441,7 +403,6 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "name": "Employee ID",
     "description": "Employee identification card",
     "schema": {...},
-    "design": {...},
     "active": true,
     "createdAt": "2024-01-15T10:30:00Z",
     "updatedAt": "2024-01-15T10:30:00Z"
@@ -479,25 +440,6 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "message": "Template deleted"
   }
   ```
-- `POST /credentials/templates/:id/clone`: Clone template
-  ```json
-  // Request
-  {
-    "newName": "Employee ID - Copy",
-    "newDescription": "Cloned template"
-  }
-  ```
-  ```json
-  // Response
-  {
-    "success": true,
-    "newTemplate": {
-      "id": "tpl_789",
-      "name": "Employee ID - Copy",
-      "createdAt": "2024-01-15T10:30:00Z"
-    }
-  }
-  ```
 
 ### Credential Issuance
 - `POST /credentials/issue`: Issue new Credential
@@ -505,10 +447,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
   // Request
   {
     "templateId": "tpl_123",
-    "recipient": {
-      "email": "employee@example.com",
-      "name": "John Doe"
-    },
+    "recipient": "did:abc:0x1234",
     "data": {
       "employeeId": "EMP-001",
       "department": "Engineering",
@@ -517,8 +456,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "validity": {
       "from": "2024-01-15",
       "until": "2025-01-15"
-    },
-    "sendNotification": true
+    }
   }
   ```
   ```json
@@ -528,7 +466,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "credential": {
       "id": "cred_abc123",
       "templateId": "tpl_123",
-      "recipient": "employee@example.com",
+      "recipient": "did:abc:0x1234",
       "status": "issued",
       "issuedAt": "2024-01-15T10:30:00Z",
       "expiresAt": "2025-01-15T23:59:59Z"
@@ -542,11 +480,11 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "templateId": "tpl_123",
     "credentials": [
       {
-        "recipient": {"email": "user1@example.com", "name": "User One"},
+        "recipient": "did:abc:0x1234",
         "data": {"employeeId": "EMP-001"}
       },
       {
-        "recipient": {"email": "user2@example.com", "name": "User Two"},
+        "recipient": "did:abc:0xabcd",
         "data": {"employeeId": "EMP-002"}
       }
     ],
@@ -564,8 +502,8 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "issuedCount": 2,
     "failedCount": 0,
     "credentials": [
-      {"id": "cred_abc123", "recipient": "user1@example.com", "status": "issued"},
-      {"id": "cred_def456", "recipient": "user2@example.com", "status": "issued"}
+      {"id": "cred_abc123", "recipient": "did:abc:0x1234", "status": "issued"},
+      {"id": "cred_def456", "recipient": "did:abc:0xabcd", "status": "issued"}
     ]
   }
   ```
@@ -580,7 +518,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
       {
         "id": "cred_abc123",
         "templateId": "tpl_123",
-        "recipient": "employee@example.com",
+        "recipient": "did:abc:0x1234",
         "status": "active",
         "issuedAt": "2024-01-15T10:30:00Z",
         "expiresAt": "2025-01-15T23:59:59Z",
@@ -621,18 +559,6 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "verificationCount": 5
   }
   ```
-- `DELETE /credentials/:id`: Revoke credential
-  ```
-  URL param: id
-  ```
-  ```json
-  // Response
-  {
-    "success": true,
-    "message": "Credential revoked",
-    "revokedAt": "2024-01-15T11:30:00Z"
-  }
-  ```
 
 ### Credential Verification
 - `GET /verify/:credentialId`: Public verify by ID
@@ -647,8 +573,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
     "status": "active",
     "verificationTime": "2024-01-15T10:35:00Z",
     "details": {
-      "template": "Employee ID",
-      "recipient": "John Doe",
+      "recipient": "did:abc:0x1234",
       "issued": "2024-01-15",
       "expires": "2025-01-15",
       "data": {
@@ -657,48 +582,6 @@ A lightweight web platform for organizations to issue, verify, and manage decent
       }
     },
     "message": "Credential is valid"
-  }
-  ```
-- `POST /verify/manual`: Manual verification
-  ```json
-  // Request
-  {
-    "credentialId": "cred_abc123",
-    "verifierNotes": "Checked at front desk",
-    "location": "Main Entrance",
-    "verifierId": "verifier_123"
-  }
-  ```
-  ```json
-  // Response
-  {
-    "success": true,
-    "verificationId": "verif_xyz789",
-    "credentialId": "cred_abc123",
-    "valid": true,
-    "timestamp": "2024-01-15T10:35:00Z",
-    "verifier": "Front Desk Officer"
-  }
-  ```
-- `GET /verify/status/:credentialId`: Check verification status
-  ```
-  URL param: credentialId
-  ```
-  ```json
-  // Response
-  {
-    "credentialId": "cred_abc123",
-    "status": "active",
-    "lastVerified": "2024-01-15T10:35:00Z",
-    "totalVerifications": 5,
-    "verificationHistory": [
-      {
-        "timestamp": "2024-01-15T10:35:00Z",
-        "verifier": "Front Desk",
-        "location": "Main Entrance",
-        "result": "valid"
-      }
-    ]
   }
   ```
 - `GET /verifications`: List all verifications
