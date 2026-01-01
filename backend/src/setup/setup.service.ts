@@ -102,6 +102,7 @@ export class SetupService implements OnModuleInit {
             success: true,
             recoveryPhrase,
             message: "Save this recovery phrase securely. It will not be shown again.",
+            did: adminDid,
             adminUser: {
                 id: setupData.admin.id,
                 email: setupData.admin.email,

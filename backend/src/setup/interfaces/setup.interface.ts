@@ -8,6 +8,7 @@ export interface SetupResult {
     success: boolean;
     message: string;
     recoveryPhrase?: string;
+    did?: string;
     adminUser?: {
         id: string;
         email: string;
