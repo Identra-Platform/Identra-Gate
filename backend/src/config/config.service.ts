@@ -68,10 +68,9 @@ export interface LoggingConfig {
 }
 
 export interface AgentConfig {
-  label: string;
   walletId: string;
   walletKey: string;
-  autoAcceptConnections: boolean;
+  menmonicHash: string;
 }
 
 export interface AppConfig {
@@ -156,10 +155,9 @@ export class ConfigService {
       LOG_MAX_SIZE: Joi.string().default('10m'),
       LOG_MAX_FILES: Joi.string().default('30d'),
 
-      AGENT_LABEL: Joi.string().default('Identra Agent'),
       AGENT_WALLET_ID: Joi.string().required(),
       AGENT_WALLET_KEY: Joi.string().min(32).required(),
-      AGENT_AUTO_ACCEPT: Joi.boolean().default(true)
+      AGENT_MNEMONIC_HASH: Joi.string().min(32).required()
     })
     .unknown(true)
     .custom((value, helpers) => {
@@ -242,10 +240,9 @@ export class ConfigService {
         maxFiles: validatedEnv.LOG_MAX_FILES,
       },
       agent: {
-        label: validatedEnv.AGENT_LABEL,
         walletId: validatedEnv.AGENT_WALLET_ID,
         walletKey: validatedEnv.AGENT_WALLET_KEY,
-        autoAcceptConnections: validatedEnv.AGENT_AUTO_ACCEPT
+        menmonicHash: validatedEnv.AGENT_MNEMONIC_HASH,
       }
     };
   }
