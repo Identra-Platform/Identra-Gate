@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, ParseBoolPipe, Query } from '@nestjs/common';
 import { HealthService } from './health.service';
 import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 
@@ -74,7 +74,7 @@ export class HealthController {
       }
     }
   })
-  async getHealth(@Query('detailed') detailed?: boolean) {
+  async getHealth(@Query('detailed', ParseBoolPipe) detailed?: boolean) {
     const health = await this.healthService.checkHealth(detailed === true);
 
     const statusCode = health.status === 'down' ? 503 : 200;

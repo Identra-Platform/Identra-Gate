@@ -3,6 +3,8 @@ services:
   postgres:
     image: postgres
     container_name: identra_postgres
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}

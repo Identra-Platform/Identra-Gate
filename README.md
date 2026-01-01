@@ -273,8 +273,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
   {
     "name": "Updated User",
     "email": "updated@example.com",
-    "role": "admin",
-    "active": true
+    "role": "admin"
   }
   ```
   ```json

@@ -3,12 +3,7 @@ import { ConfigService } from './config.service';
 
 @Global()
 @Module({
-  providers: [
-    {
-      provide: ConfigService,
-      useFactory: () => new ConfigService()
-    }
-  ],
+  providers: [ConfigService],
   exports: [ConfigService]
 })
 export class ConfigModule {}
