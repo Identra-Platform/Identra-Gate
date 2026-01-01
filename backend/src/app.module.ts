@@ -10,10 +10,14 @@ import { ConfigService } from './config/config.service';
 import { User } from './users/entities/user.entity';
 import { Role } from './users/entities/role.entity';
 import { dataSourceOptions } from '../database/datasource';
+import { LogsModule } from './audit/logs/logs.module';
+import { MetricsModule } from './audit/metrics/metrics.module';
 
 @Module({
   imports: [ConfigModule, SetupModule, HealthModule, UsersModule,
-    TypeOrmModule.forRoot(dataSourceOptions)
+    TypeOrmModule.forRoot(dataSourceOptions),
+    LogsModule,
+    MetricsModule
   ],
   controllers: [AppController],
   providers: [AppService],

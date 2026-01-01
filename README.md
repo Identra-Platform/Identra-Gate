@@ -313,8 +313,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
         "timestamp": "2024-01-15T10:30:00Z",
         "level": "info",
         "message": "User login successful",
-        "userId": "usr_123",
-        "ip": "192.168.1.1"
+        "userId": "usr_123"
       }
     ],
     "total": 150,
@@ -329,8 +328,7 @@ A lightweight web platform for organizations to issue, verify, and manage decent
   // Response
   {
     "users": {
-      "total": 150,
-      "active": 120
+      "total": 150
     },
     "credentials": {
       "issued": 1000,

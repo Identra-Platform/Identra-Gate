@@ -3,6 +3,7 @@ import { ConfigService } from "../src/config/config.service";
 import { Role } from "../src/users/entities/role.entity";
 import { User } from "../src/users/entities/user.entity";
 import { DataSource, DataSourceOptions } from "typeorm";
+import { Log } from "../src/audit/logs/entities/log.entity";
 
 
 const configService = new ConfigService();
@@ -15,7 +16,7 @@ export const dataSourceOptions: DataSourceOptions = {
   password: configService.database.password,
   database: configService.database.database,
   entities: [
-    User, Role
+    User, Role, Log
   ],
   migrations: [
     './migration/**/*{.js,.ts}'
