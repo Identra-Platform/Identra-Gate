@@ -55,6 +55,28 @@ export class OfferingsService {
   async update(id: string, updateOfferingDto: UpdateOfferingDto) {
     const offering = await this.findOne(id);
 
+    if (updateOfferingDto.requirements !== undefined) {
+      await this.offeringRequirementRepository.delete({ id });
+
+      if (updateOfferingDto.requirements.length > 0) {
+        const requirements = updateOfferingDto.requirements.map((reqDto, index) => {
+          const requirement = this.offeringRequirementRepository.create({
+            offering: offering,
+            type: reqDto.type,
+            title: reqDto.title,
+            description: reqDto.description,
+            required: reqDto.required !== undefined ? reqDto.required : true,
+            format: reqDto.format
+          });
+          return requirement;
+        });
+
+        offering.requirements = await this.offeringRequirementRepository.save(requirements);
+      } else {
+        offering.requirements = [];
+      }
+    }
+
     Object.assign(offering, updateOfferingDto);
     return await this.offeringRepository.save(offering);
   }
