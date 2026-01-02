@@ -9,6 +9,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from '../database/datasource';
 import { LogsModule } from './audit/logs/logs.module';
 import { MetricsModule } from './audit/metrics/metrics.module';
+import { CredentialModule } from './credential/credential.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { MetricsModule } from './audit/metrics/metrics.module';
     HealthModule, UsersModule,
     LogsModule, MetricsModule,
     TypeOrmModule.forRoot(dataSourceOptions),
+    CredentialModule,
   ],
   controllers: [AppController],
   providers: [AppService],
