@@ -25,8 +25,12 @@
     "migration:show": "npm run typeorm -- migration:show"
   },
   "dependencies": {
+    "@credo-ts/anoncreds": "^0.6.1",
+    "@credo-ts/askar": "^0.6.1",
     "@credo-ts/core": "^0.6.1",
+    "@credo-ts/hedera": "^0.6.1",
     "@credo-ts/node": "^0.6.1",
+    "@hyperledger/anoncreds-nodejs": "^0.3.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
@@ -35,7 +39,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.3",
     "@nestjs/typeorm": "^11.0.0",
-    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@openwallet-foundation/askar-nodejs": "^0.4.3",
     "bcrypt": "^6.0.0",
     "class-validator": "^0.14.3",
     "joi": "^18.0.2",

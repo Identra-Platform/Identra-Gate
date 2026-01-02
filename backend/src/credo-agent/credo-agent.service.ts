@@ -1,11 +1,11 @@
 import { Injectable, Logger, OnModuleInit, Param } from "@nestjs/common";
 import { Agent, DidsModule } from "@credo-ts/core";
 import { AskarModule } from "@credo-ts/askar";
-import { askar } from '@openwallet-foundation/askar-react-native';
+import { askar } from '@openwallet-foundation/askar-nodejs';
 import { DidCommModule, DidCommWsOutboundTransport } from "@credo-ts/didcomm";
 import { HederaAnonCredsRegistry, HederaDidRegistrar, HederaDidResolver, HederaModule } from "@credo-ts/hedera"
 import { AnonCredsModule } from "@credo-ts/anoncreds";
-import { anoncreds } from "@hyperledger/anoncreds-react-native";
+import { anoncreds } from "@hyperledger/anoncreds-nodejs";
 import { agentDependencies } from "@credo-ts/node";
 import { AgentConfig, ConfigService } from "src/config/config.service";
 import { v4 as uuidv4 } from "uuid";
@@ -41,17 +41,17 @@ export class CredoAgentService implements OnModuleInit {
 
     
     async create(passphrase: string, mnemonic: string[]) {
-        const existingAgent = await CredoAgentStore.getInastance().load();
+        const existingAgent = await CredoAgentStore.getInstance().load();
         if (existingAgent) {
             throw new Error("Credo Agent already exists");
         }
 
         const agentConfig: AgentConfig = {
-            walletId: this.configService.agent.walletId,
+            walletId: uuidv4(),
             walletKey: await bcrypt.hash(passphrase, 10),
             menmonicHash: await bcrypt.hash(mnemonic.join(" "), 10) 
         };
-        await CredoAgentStore.getInastance().save(agentConfig);
+        await CredoAgentStore.getInstance().save(agentConfig);
         this.logger.log("Credo Agent created and saved to storage");
 
         return this.loadAndInit(passphrase);
@@ -62,13 +62,13 @@ export class CredoAgentService implements OnModuleInit {
             return this.agent;
         }
 
-        const config = await CredoAgentStore.getInastance().load();
+        const config = await CredoAgentStore.getInstance().load();
         if (!config) {
             throw new Error("Credo Agent not found in storage");
         }
         const passwordHash = await bcrypt.hash(password, 10);
 
-        if (config.agent.walletId !== passwordHash) {
+        if (config.walletId !== passwordHash) {
             throw new Error("Invalid password for Credo Agent");
         }
 
@@ -83,8 +83,8 @@ export class CredoAgentService implements OnModuleInit {
                 askar: new AskarModule({
                     askar,
                     store: {
-                        id: config.agent.walletId,
-                        key: config.agent.walletKey
+                        id: config.walletId,
+                        key: config.walletId
                     }
                 }),
                 dids: new DidsModule({
@@ -110,42 +110,7 @@ export class CredoAgentService implements OnModuleInit {
     }
 
     async onModuleInit() {
-        this.agent = new Agent({
-            dependencies: agentDependencies,
-            modules: {
-                didcomm: new DidCommModule({
-                    transports: {
-                        outbound: [new DidCommWsOutboundTransport()]
-                    }
-                }),
-                askar: new AskarModule({
-                    askar,
-                    store: {
-                        id: this.configService.agent.walletId,
-                        key: this.configService.agent.walletKey
-                    }
-                }),
-                dids: new DidsModule({
-                    registrars: [new HederaDidRegistrar()],
-                    resolvers: [new HederaDidResolver()]
-                }),
-                anoncreds: new AnonCredsModule({
-                    registries: [new HederaAnonCredsRegistry()],
-                    anoncreds
-                }),
-                hedera: new HederaModule({
-                    networks: [{
-                        network: "testnet",
-                        operatorId: "0.0.7427588",
-                        operatorKey: "302e020100300506032b657004220420b1f5f5f4e1c3e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4"
-                    }]
-                })
-            }
-        });
-        await this.agent.initialize();
-        this.logger.log("Credo Agent initialized");
-
-        return this.agent;
+        this.loadAndInit(this.configService.agent.walletKey);
     }
 
     getAgent(): Agent {

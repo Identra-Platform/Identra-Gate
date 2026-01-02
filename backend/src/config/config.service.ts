@@ -68,9 +68,9 @@ export interface LoggingConfig {
 }
 
 export interface AgentConfig {
-  walletId: string;
+  walletId?: string;
   walletKey: string;
-  menmonicHash: string;
+  menmonicHash?: string;
 }
 
 export interface AppConfig {
@@ -155,9 +155,8 @@ export class ConfigService {
       LOG_MAX_SIZE: Joi.string().default('10m'),
       LOG_MAX_FILES: Joi.string().default('30d'),
 
-      AGENT_WALLET_ID: Joi.string().required(),
-      AGENT_WALLET_KEY: Joi.string().min(32).required(),
-      AGENT_MNEMONIC_HASH: Joi.string().min(32).required()
+      AGENT_STORAGE_PATH: Joi.string().required(),
+      AGENT_WALLET_KEY: Joi.string().required()
     })
     .unknown(true)
     .custom((value, helpers) => {
@@ -180,7 +179,6 @@ export class ConfigService {
     }
 
     const corsOrigins = validatedEnv.CORS_ORIGINS.split(',').map(s => s.trim());
-    const allowedFileTypes = validatedEnv.ALLOWED_FILE_TYPES.split(',').map(s => s.trim());
     const allowedDidMethods = validatedEnv.ALLOWED_DID_METHODS.split(',').map(s => s.trim());
 
     return {
@@ -240,9 +238,7 @@ export class ConfigService {
         maxFiles: validatedEnv.LOG_MAX_FILES,
       },
       agent: {
-        walletId: validatedEnv.AGENT_WALLET_ID,
-        walletKey: validatedEnv.AGENT_WALLET_KEY,
-        menmonicHash: validatedEnv.AGENT_MNEMONIC_HASH,
+        walletKey: validatedEnv.AGENT_WALLET_KEY
       }
     };
   }

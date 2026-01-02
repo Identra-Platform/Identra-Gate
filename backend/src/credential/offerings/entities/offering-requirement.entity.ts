@@ -2,7 +2,7 @@ import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Offering } from "./offering.entity";
 
 export type OfferingRequirementType = 'document' | 'credential' | 'information' | 'consent';
-export type OfferingRequirementFormat = 'image' | 'pdf' | 'text' | 'credential';
+export type OfferingRequirementFormat = 'image' | 'pdf' | 'text' | 'credential' | 'check';
 
 @Entity()
 export class OfferingRequirement {
