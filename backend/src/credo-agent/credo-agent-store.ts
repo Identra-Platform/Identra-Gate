@@ -1,18 +1,25 @@
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { AgentConfig, ConfigService } from '../config/config.service';
 import path from 'path';
-import { AgentConfig, ConfigService } from 'src/config/config.service';
+import * as fs from 'fs/promises';
+import { v4 as uuidv4 } from 'uuid';
 
-const AGENT_STORAGE_KEY = 'credo-agent-storage';
+@Injectable()
+export class AgentStoreService implements OnModuleInit {
+  private config: AgentConfig | null = null;
+  private configPath: string;
 
-export class CredoAgentStore {
-  private static instance: CredoAgentStore;
-
-  private constructor() {
-    path.join(process.cwd(), 'data', 'agent-storage.json');
-    this.ensureStorageDirectory();
+  constructor() {
+    // Use environment variable or default
+    this.configPath = process.env.AGENT_STORAGE_PATH || './data/agent-config.json';
   }
 
-  private async ensureStorageDirectory(): Promise<void> {
-    const dir = path.dirname(AGENT_STORAGE_PATH);
+  async onModuleInit() {
+    await this.load();
+  }
+
+  private async ensureDirectory(): Promise<void> {
+    const dir = path.dirname(this.configPath);
     try {
       await fs.access(dir);
     } catch {
@@ -20,27 +27,85 @@ export class CredoAgentStore {
     }
   }
 
-  static getInstance(): CredoAgentStore {
-    if (!this.instance) {
-      this.instance = new CredoAgentStore();
-    }
-    return this.instance;
-  }
-
   async load(): Promise<AgentConfig | null> {
-    const raw = localStorage.getItem(AGENT_STORAGE_KEY);
-    if (!raw) {
-      return null;
+    try {
+      await this.ensureDirectory();
+      const data = await fs.readFile(this.configPath, 'utf8');
+      this.config = JSON.parse(data) as AgentConfig;
+      console.log('Loaded agent config from:', this.configPath);
+    } catch (error) {
+      // File doesn't exist yet - that's OK during setup
+      this.config = null;
     }
-
-    return JSON.parse(raw) as AgentConfig;
+    return this.config;
   }
 
-  async save(data: AgentConfig): Promise<void> {
-    localStorage.setItem(AGENT_STORAGE_KEY, JSON.stringify(data));
+  async save(config: AgentConfig): Promise<void> {
+    await this.ensureDirectory();
+    
+    await fs.writeFile(
+      this.configPath, 
+      JSON.stringify(this.config, null, 2),
+      'utf8'
+    );
+    console.log('Saved agent config to:', this.configPath);
+  }
+
+  async create(walletKey: string, mnemonicHash?: string): Promise<AgentConfig> {
+    const config: AgentConfig = {
+      walletId: uuidv4(),
+      walletKey,
+      storagePath: this.configPath
+    };
+    
+    await this.save(config);
+    return config;
+  }
+
+  async update(updates: Partial<AgentConfig>): Promise<AgentConfig> {
+    if (!this.config) {
+      throw new Error('No agent config found. Run setup first.');
+    }
+    
+    const updatedConfig = {
+      ...this.config,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    await this.save(updatedConfig);
+    return updatedConfig;
   }
 
   async clear(): Promise<void> {
-    localStorage.removeItem(AGENT_STORAGE_KEY);
+    try {
+      await fs.unlink(this.configPath);
+    } catch (error) {
+      // File might not exist, that's OK
+    }
+    this.config = null;
+  }
+
+  getConfig(): AgentConfig {
+    if (!this.config) {
+      throw new Error('Agent config not loaded. Run setup first.');
+    }
+    return this.config;
+  }
+
+  getWalletId(): string | undefined {
+    return this.getConfig().walletId;
+  }
+
+  getWalletKey(): string | undefined {
+    return this.getConfig().walletKey;
+  }
+
+  hasConfig(): boolean {
+    return this.config !== null;
+  }
+
+  getConfigPath(): string {
+    return this.configPath;
   }
 }

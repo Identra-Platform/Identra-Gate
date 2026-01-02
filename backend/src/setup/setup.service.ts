@@ -107,7 +107,7 @@ export class SetupService implements OnModuleInit {
     this.logger.log('Setup completed successfully.');
 
     const adminDid = await this.credoAgentService.createDid(dto.adminName);
-    setupData.admin.id = adminDid;
+    setupData.admin.id = adminDid!;
 
     return {
       success: true,

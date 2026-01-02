@@ -68,9 +68,9 @@ export interface LoggingConfig {
 }
 
 export interface AgentConfig {
-  walletId?: string;
+  walletId: string;
   walletKey: string;
-  menmonicHash?: string;
+  storagePath: string;
 }
 
 export interface AppConfig {
@@ -172,7 +172,9 @@ export class ConfigService {
       LOG_MAX_SIZE: Joi.string().default('10m'),
       LOG_MAX_FILES: Joi.string().default('30d'),
 
-      AGENT_STORAGE_PATH: Joi.string().required(),
+      AGENT_WALLET_ID: Joi.string().optional(), // Will be generated during setup
+      AGENT_WALLET_KEY: Joi.string().optional(), // Will be provided during setup
+      AGENT_STORAGE_PATH: Joi.string().default('./data/agent-config.json'),
     })
       .unknown(true)
       .custom((value, helpers) => {
@@ -260,8 +262,10 @@ export class ConfigService {
         maxFiles: validatedEnv.LOG_MAX_FILES,
       },
       agent: {
-        walletKey: validatedEnv.AGENT_STORAGE_PATH,
-      },
+        walletId: validatedEnv.AGENT_WALLET_ID,
+        walletKey: validatedEnv.AGENT_WALLET_KEY,
+        storagePath: validatedEnv.AGENT_STORAGE_PATH
+      }
     };
   }
 

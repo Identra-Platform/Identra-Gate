@@ -23,7 +23,7 @@ export class Log {
   @CreateDateColumn()
   timestamp: Date;
 
-  @Column({ type: 'enum', enum: LogLevel })
+  @Column({ type: 'text', enum: LogLevel })
   level: LogLevel;
 
   @Column()

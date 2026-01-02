@@ -6,6 +6,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { CreateRequirementDto } from './create-requirement.dto';
 
 export class CreateOfferingDto {
@@ -23,6 +24,7 @@ export class CreateOfferingDto {
 
   @IsArray()
   @ValidateNested({ each: true })
+  @Type(() => CreateRequirementDto)
   @IsOptional()
   requirements: CreateRequirementDto[] = [];
 }
