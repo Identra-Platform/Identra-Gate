@@ -19,24 +19,27 @@ export class OfferingsService {
     const offeringEntity = this.offeringRepository.create({
       name: createOfferingDto.name,
       description: createOfferingDto.description,
-      category: createOfferingDto.category
+      category: createOfferingDto.category,
     });
     const offering = await this.offeringRepository.save(offeringEntity);
 
     if (createOfferingDto.requirements.length > 0) {
-      const requirements = createOfferingDto.requirements.map((reqDto, index) => {
-        const requirement = this.offeringRequirementRepository.create({
-          type: reqDto.type,
-          title: reqDto.title,
-          description: reqDto.description,
-          required: reqDto.required !== undefined ? reqDto.required : true,
-          format: reqDto.format,
-          offering
-        });
-        return requirement;
-      });
+      const requirements = createOfferingDto.requirements.map(
+        (reqDto, index) => {
+          const requirement = this.offeringRequirementRepository.create({
+            type: reqDto.type,
+            title: reqDto.title,
+            description: reqDto.description,
+            required: reqDto.required !== undefined ? reqDto.required : true,
+            format: reqDto.format,
+            offering,
+          });
+          return requirement;
+        },
+      );
 
-      offering.requirements = await this.offeringRequirementRepository.save(requirements);
+      offering.requirements =
+        await this.offeringRequirementRepository.save(requirements);
     }
 
     return offering;
@@ -48,7 +51,7 @@ export class OfferingsService {
 
   async findOne(id: string) {
     return this.offeringRepository.findOneOrFail({
-      where: {id}
+      where: { id },
     });
   }
 
@@ -59,19 +62,22 @@ export class OfferingsService {
       await this.offeringRequirementRepository.delete({ id });
 
       if (updateOfferingDto.requirements.length > 0) {
-        const requirements = updateOfferingDto.requirements.map((reqDto, index) => {
-          const requirement = this.offeringRequirementRepository.create({
-            offering: offering,
-            type: reqDto.type,
-            title: reqDto.title,
-            description: reqDto.description,
-            required: reqDto.required !== undefined ? reqDto.required : true,
-            format: reqDto.format
-          });
-          return requirement;
-        });
+        const requirements = updateOfferingDto.requirements.map(
+          (reqDto, index) => {
+            const requirement = this.offeringRequirementRepository.create({
+              offering: offering,
+              type: reqDto.type,
+              title: reqDto.title,
+              description: reqDto.description,
+              required: reqDto.required !== undefined ? reqDto.required : true,
+              format: reqDto.format,
+            });
+            return requirement;
+          },
+        );
 
-        offering.requirements = await this.offeringRequirementRepository.save(requirements);
+        offering.requirements =
+          await this.offeringRequirementRepository.save(requirements);
       } else {
         offering.requirements = [];
       }

@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import path from 'path';
 import { Observable } from 'rxjs';
@@ -7,8 +13,15 @@ import * as fs from 'fs';
 @Injectable()
 export class SetupGuard implements CanActivate {
   private readonly logger = new Logger(SetupGuard.name);
-  private readonly setupFileFlag = path.join(process.cwd(), 'data', 'setup-completed.flag');
-  private readonly setupRequiredPath = path.join(process.cwd(), 'setup-required');
+  private readonly setupFileFlag = path.join(
+    process.cwd(),
+    'data',
+    'setup-completed.flag',
+  );
+  private readonly setupRequiredPath = path.join(
+    process.cwd(),
+    'setup-required',
+  );
 
   canActivate(
     context: ExecutionContext,
@@ -25,7 +38,9 @@ export class SetupGuard implements CanActivate {
     const isSetupEndpoint = request.path.startsWith('/setup');
 
     if (requiresSetup && !isSetupEndpoint) {
-      throw new ForbiddenException('Initial setup required. Please visit /setup');
+      throw new ForbiddenException(
+        'Initial setup required. Please visit /setup',
+      );
     }
 
     if (!requiresSetup && isSetupEndpoint) {
@@ -37,12 +52,14 @@ export class SetupGuard implements CanActivate {
         return true;
       }
 
-      this.logger.warn(`Attempt to access setup endpoint after setup completed: ${request.path}`);
+      this.logger.warn(
+        `Attempt to access setup endpoint after setup completed: ${request.path}`,
+      );
 
       throw new ForbiddenException({
         message: 'Setup already completed',
         code: 'SETUP_ALREADY_COMPLETED',
-        requiresSetup: false
+        requiresSetup: false,
       });
     }
 
@@ -72,10 +89,10 @@ export class SetupGuard implements CanActivate {
       return true;
     }
   }
-  
+
   getSetupStatus(): { requiresSetup: boolean; serverName?: string } {
     const requiresSetup = this.isSetupRequired();
-    
+
     if (!requiresSetup) {
       try {
         const configPath = path.join(process.cwd(), 'data', 'config.json');
@@ -83,14 +100,14 @@ export class SetupGuard implements CanActivate {
           const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
           return {
             requiresSetup: false,
-            serverName: config.serverName
+            serverName: config.serverName,
           };
         }
       } catch (error) {
         this.logger.error('Error reading config:', error);
       }
     }
-    
+
     return { requiresSetup };
   }
 }

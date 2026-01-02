@@ -1,5 +1,17 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsBoolean, IsNotEmpty, IsString, Matches, MaxLength, MinLength, Validate, ValidateIf, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
+import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+  Validate,
+  ValidateIf,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
 
 @ValidatorConstraint({ name: 'requiresConfirmation', async: false })
 export class RequiresConfirmationConstraint implements ValidatorConstraintInterface {
@@ -21,20 +33,22 @@ export class ResetSetupDto {
     example: 'CurrentAdminPass123!',
     description: 'Current admin password for authentication',
   })
-  @ValidateIf(o => o.confirmReset === true)
+  @ValidateIf((o) => o.confirmReset === true)
   @IsString()
   @IsNotEmpty()
   @MinLength(12)
   @Matches(/(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])/, {
-    message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+    message:
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
   })
   adminPassword: string;
 
   @ApiProperty({
-    example: 'apple brave chair dance eagle flame grape house image jolly knife lemon',
+    example:
+      'apple brave chair dance eagle flame grape house image jolly knife lemon',
     description: 'Current recovery phrase (24 words)',
   })
-  @ValidateIf(o => o.confirmReset === true)
+  @ValidateIf((o) => o.confirmReset === true)
   @IsString()
   @IsNotEmpty()
   @MinLength(10)

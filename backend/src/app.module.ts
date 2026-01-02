@@ -13,9 +13,12 @@ import { CredentialModule } from './credential/credential.module';
 
 @Module({
   imports: [
-    ConfigModule, SetupModule,
-    HealthModule, UsersModule,
-    LogsModule, MetricsModule,
+    ConfigModule,
+    SetupModule,
+    HealthModule,
+    UsersModule,
+    LogsModule,
+    MetricsModule,
     TypeOrmModule.forRoot(dataSourceOptions),
     CredentialModule,
   ],

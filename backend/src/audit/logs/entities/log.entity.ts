@@ -1,12 +1,18 @@
-import { User } from "../../../users/entities/user.entity";
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { User } from '../../../users/entities/user.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 export enum LogLevel {
   Error = 'error',
   Warn = 'warn',
   Info = 'info',
   Debug = 'debug',
-  Verbose = 'verbose'
+  Verbose = 'verbose',
 }
 
 @Entity()
@@ -23,6 +29,6 @@ export class Log {
   @Column()
   message: string;
 
-  @ManyToOne(() => User, user => user.logs)
+  @ManyToOne(() => User, (user) => user.logs)
   user: User;
 }

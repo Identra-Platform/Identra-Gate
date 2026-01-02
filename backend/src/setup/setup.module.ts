@@ -5,6 +5,6 @@ import { CredoAgentService } from 'src/credo-agent/credo-agent.service';
 
 @Module({
   controllers: [SetupController],
-  providers: [SetupService, CredoAgentService]
+  providers: [SetupService, CredoAgentService],
 })
 export class SetupModule {}

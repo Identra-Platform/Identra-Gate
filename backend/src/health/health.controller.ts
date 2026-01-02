@@ -4,20 +4,19 @@ import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 
 @Controller('health')
 export class HealthController {
-  constructor(
-    private readonly healthService: HealthService
-  ) {}
+  constructor(private readonly healthService: HealthService) {}
 
   @Get()
   @ApiOperation({
     summary: 'Get system health status',
-    description: 'Returns comprehensive health check of all major system components'
+    description:
+      'Returns comprehensive health check of all major system components',
   })
   @ApiQuery({
     name: 'detailed',
     required: false,
     type: Boolean,
-    description: 'Include detailed metrics and service status'
+    description: 'Include detailed metrics and service status',
   })
   @ApiResponse({
     status: 200,
@@ -39,12 +38,12 @@ export class HealthController {
             details: {
               host: 'localhost',
               database: 'identragate',
-              connection: 'established'
-            }
-          }
-        ]
-      }
-    }
+              connection: 'established',
+            },
+          },
+        ],
+      },
+    },
   })
   @ApiResponse({
     status: 503,
@@ -67,12 +66,12 @@ export class HealthController {
             details: {
               host: 'localhost',
               database: 'identragate',
-              connection: 'failed'
-            }
-          }
-        ]
-      }
-    }
+              connection: 'failed',
+            },
+          },
+        ],
+      },
+    },
   })
   async getHealth(@Query('detailed', ParseBoolPipe) detailed?: boolean) {
     const health = await this.healthService.checkHealth(detailed === true);
@@ -81,14 +80,14 @@ export class HealthController {
 
     return {
       ...health,
-      statusCode
+      statusCode,
     };
   }
 
   @Get('light')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get lightweight health status',
-    description: 'Quick health check returning only essential status'
+    description: 'Quick health check returning only essential status',
   })
   @ApiResponse({
     status: 200,
@@ -97,27 +96,28 @@ export class HealthController {
       example: {
         status: 'up',
         timestamp: '2024-01-15T10:30:00Z',
-        version: '1.0.0'
-      }
-    }
+        version: '1.0.0',
+      },
+    },
   })
   async getLightHealth() {
     return this.healthService.checkHealthLight();
   }
 
   @Get('database')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Check database health',
-    description: 'Detailed health check for the database connection'
+    description: 'Detailed health check for the database connection',
   })
   async checkDatabase() {
     return this.healthService.checkDatabase();
   }
 
   @Get('metrics')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get system metrics',
-    description: 'Detailed system metrics including CPU, memory, and disk usage'
+    description:
+      'Detailed system metrics including CPU, memory, and disk usage',
   })
   async getMetrics() {
     const metrics = await this.healthService.getSystemMetrics();

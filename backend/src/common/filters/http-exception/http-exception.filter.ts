@@ -1,4 +1,11 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -42,7 +49,10 @@ export class HttpExceptionFilter<T> implements ExceptionFilter {
         error = responseObj.error || this.getErrorNameFromStatus(status);
         details = responseObj.details || null;
       }
-    } else if (exception instanceof Error && exception.name === 'ValidationError') {
+    } else if (
+      exception instanceof Error &&
+      exception.name === 'ValidationError'
+    ) {
       status = HttpStatus.BAD_REQUEST;
       message = 'Validation failed';
       error = 'Bad Request';
@@ -50,7 +60,10 @@ export class HttpExceptionFilter<T> implements ExceptionFilter {
     } else if (exception instanceof Error) {
       message = exception.message || 'Internal server error';
       error = exception.name || 'Internal Server Error';
-      details = process.env.NODE_ENV === 'development' ? (exception.stack ?? null) : null;
+      details =
+        process.env.NODE_ENV === 'development'
+          ? (exception.stack ?? null)
+          : null;
     }
 
     this.logError(request, exception, errorId, status);
@@ -73,7 +86,12 @@ export class HttpExceptionFilter<T> implements ExceptionFilter {
     response.status(status).json(errorResponse);
   }
 
-  private logError(request: Request, exception: unknown, errorId: string, status: number) {
+  private logError(
+    request: Request,
+    exception: unknown,
+    errorId: string,
+    status: number,
+  ) {
     const logContext = {
       errorId,
       method: request.method,
@@ -81,7 +99,10 @@ export class HttpExceptionFilter<T> implements ExceptionFilter {
       statusCode: status,
       userId: (request as any).user?.id,
       userAgent: request.headers['user-agent'],
-      ip: request.ip || request.headers['x-forwarded-for'] || request.connection.remoteAddress,
+      ip:
+        request.ip ||
+        request.headers['x-forwarded-for'] ||
+        request.connection.remoteAddress,
       timestamp: new Date().toISOString(),
     };
 

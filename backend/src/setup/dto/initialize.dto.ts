@@ -1,9 +1,27 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsEmail, IsNotEmpty, IsNumber, IsString, Length, Matches, Max, MaxLength, Min, MinLength, Validate, ValidationArguments, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Length,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  Validate,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
 
 @ValidatorConstraint({ name: 'passwordMatch', async: false })
 export class PasswordMatchConstraint implements ValidatorConstraintInterface {
-  validate(confirmPassword: string, validationArguments: ValidationArguments): Promise<boolean> | boolean {
+  validate(
+    confirmPassword: string,
+    validationArguments: ValidationArguments,
+  ): Promise<boolean> | boolean {
     const obj = validationArguments.object as any;
     return obj.password === confirmPassword;
   }
@@ -98,7 +116,8 @@ export class InitializeResponseDto {
   success: boolean;
 
   @ApiProperty({
-    example: 'apple brave chair dance eagle flame grape house image jolly knife lemon money night ocean piano queen river sunny tiger unity voice world youth',
+    example:
+      'apple brave chair dance eagle flame grape house image jolly knife lemon money night ocean piano queen river sunny tiger unity voice world youth',
     description: 'Recovery phrase (ONLY shown once!)',
   })
   recoveryPhrase: string;

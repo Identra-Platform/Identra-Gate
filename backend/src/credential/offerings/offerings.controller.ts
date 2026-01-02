@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { OfferingsService } from './offerings.service';
 import { CreateOfferingDto } from './dto/create-offering.dto';
 import { UpdateOfferingDto } from './dto/update-offering.dto';
@@ -23,7 +33,10 @@ export class OfferingsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOfferingDto: UpdateOfferingDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateOfferingDto: UpdateOfferingDto,
+  ) {
     return this.offeringsService.update(id, updateOfferingDto);
   }
 

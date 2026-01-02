@@ -1,7 +1,13 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { DatabaseStatus, HealthCheckResult, HealthStatus, ServiceStatus, SystemMetrics } from './interfaces/health.interface';
+import {
+  DatabaseStatus,
+  HealthCheckResult,
+  HealthStatus,
+  ServiceStatus,
+  SystemMetrics,
+} from './interfaces/health.interface';
 import { ConfigService } from 'src/config/config.service';
 import { DataSource } from 'typeorm';
 import path from 'path';
@@ -18,7 +24,7 @@ export class HealthService implements OnModuleInit {
 
   constructor(
     private configService: ConfigService,
-    private dataSource: DataSource
+    private dataSource: DataSource,
   ) {}
 
   onModuleInit() {
@@ -57,21 +63,28 @@ export class HealthService implements OnModuleInit {
       this.checkFileSystem(),
       this.checkMemory(),
       this.checkDiskSpace(),
-      this.checkExternalConnections()
+      this.checkExternalConnections(),
     ]);
 
-    const results = checks.map(result => result.status === 'fulfilled' ? result.value : this.handleFailedCheck(result.reason));
+    const results = checks.map((result) =>
+      result.status === 'fulfilled'
+        ? result.value
+        : this.handleFailedCheck(result.reason),
+    );
 
-    const criticalFailures = results.filter(result => result.status === 'down' && result.required);
+    const criticalFailures = results.filter(
+      (result) => result.status === 'down' && result.required,
+    );
 
-    const overrallStatus: HealthStatus = criticalFailures.length > 0 ? 'down': 'up';
+    const overrallStatus: HealthStatus =
+      criticalFailures.length > 0 ? 'down' : 'up';
 
     const response: HealthCheckResult = {
       status: overrallStatus,
       timestamp: new Date().toISOString(),
       uptime: this.getUptime(),
       environment: this.configService.server.nodeEnv,
-      checks: results
+      checks: results,
     };
 
     if (detailed) {
@@ -82,9 +95,13 @@ export class HealthService implements OnModuleInit {
     return response;
   }
 
-  async checkHealthLight(): Promise<{ status: HealthStatus; timestamp: string; version: string }> {
+  async checkHealthLight(): Promise<{
+    status: HealthStatus;
+    timestamp: string;
+    version: string;
+  }> {
     const databaseCheck = await this.checkDatabase();
-    
+
     return {
       status: databaseCheck.status === 'up' ? 'up' : 'down',
       timestamp: new Date().toISOString(),
@@ -112,8 +129,8 @@ export class HealthService implements OnModuleInit {
           host: this.configService.database.host,
           database: this.configService.database.database,
           connection: 'established',
-          poolSize: (this.dataSource.driver as any).pool?.max || 'unknown'
-        }
+          poolSize: (this.dataSource.driver as any).pool?.max || 'unknown',
+        },
       };
 
       this.updateServiceStatus('database', 'up');
@@ -132,7 +149,7 @@ export class HealthService implements OnModuleInit {
           connection: 'failed',
         },
       };
-      
+
       this.updateServiceStatus('database', 'down');
       this.logger.error(`Database health check failed: ${error.message}`);
       return status;
@@ -146,7 +163,7 @@ export class HealthService implements OnModuleInit {
       const dataDir = path.dirname(this.configService.setup.setupFlagPath);
 
       if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, {recursive: true});
+        fs.mkdirSync(dataDir, { recursive: true });
       }
 
       const testFile = path.join(dataDir, '.health-test');
@@ -193,7 +210,6 @@ export class HealthService implements OnModuleInit {
       const usedMemory = totalMemory - freeMemory;
       const memoryUsagePercent = (usedMemory / totalMemory) * 100;
 
-
       const status: ServiceStatus = {
         name: 'System Memory',
         status: memoryUsagePercent > 90 ? 'warning' : 'up',
@@ -210,7 +226,9 @@ export class HealthService implements OnModuleInit {
 
       this.updateServiceStatus('memory', status.status);
       if (memoryUsagePercent > 90) {
-        this.logger.warn(`High memory usage: ${memoryUsagePercent.toFixed(2)}%`);
+        this.logger.warn(
+          `High memory usage: ${memoryUsagePercent.toFixed(2)}%`,
+        );
       }
       return status;
     } catch (error) {
@@ -230,17 +248,17 @@ export class HealthService implements OnModuleInit {
 
   private async checkDiskSpace(): Promise<ServiceStatus> {
     const startTime = Date.now();
-    
+
     try {
       const dataDir = path.dirname(this.configService.setup.setupFlagPath);
       const freeSpace = await this.getFreeDiskSpace(dataDir);
-      
+
       const freeBytes = this.parseBytes(freeSpace);
       const warningThreshold = 1 * 1024 * 1024 * 1024;
       const criticalThreshold = 100 * 1024 * 1024;
 
       let status: 'up' | 'warning' | 'down' = 'up';
-      
+
       if (freeBytes < criticalThreshold) {
         status = 'down';
       } else if (freeBytes < warningThreshold) {
@@ -263,12 +281,11 @@ export class HealthService implements OnModuleInit {
 
       if (status !== 'up') {
         this.logger[status === 'down' ? 'error' : 'warn'](
-          `Low disk space: ${freeSpace} free in ${dataDir}`
+          `Low disk space: ${freeSpace} free in ${dataDir}`,
         );
       }
 
       return healthStatus;
-
     } catch (error) {
       const status: ServiceStatus = {
         name: 'Disk Space',
@@ -285,10 +302,10 @@ export class HealthService implements OnModuleInit {
 
   private async checkExternalConnections(): Promise<ServiceStatus> {
     const startTime = Date.now();
-    
+
     try {
       await execAsync('nslookup google.com');
-      
+
       const status: ServiceStatus = {
         name: 'External Connectivity',
         status: 'up',
@@ -302,7 +319,6 @@ export class HealthService implements OnModuleInit {
       };
 
       return status;
-
     } catch (error) {
       const status: ServiceStatus = {
         name: 'External Connectivity',
@@ -333,11 +349,15 @@ export class HealthService implements OnModuleInit {
   private async getFreeDiskSpace(path: string): Promise<string> {
     try {
       if (os.platform() === 'win32') {
-        const { stdout } = await execAsync(`wmic logicaldisk where "DeviceID='${path.charAt(0).toUpperCase()}:'" get FreeSpace`);
+        const { stdout } = await execAsync(
+          `wmic logicaldisk where "DeviceID='${path.charAt(0).toUpperCase()}:'" get FreeSpace`,
+        );
         const freeBytes = parseInt(stdout.split('\n')[1].trim());
         return this.formatBytes(freeBytes);
       } else {
-        const { stdout } = await execAsync(`df -k ${path} | tail -1 | awk '{print $4}'`);
+        const { stdout } = await execAsync(
+          `df -k ${path} | tail -1 | awk '{print $4}'`,
+        );
         const freeKB = parseInt(stdout.trim());
         return this.formatBytes(freeKB * 1024);
       }
@@ -357,11 +377,11 @@ export class HealthService implements OnModuleInit {
 
   private parseBytes(sizeStr: string): number {
     const units = {
-      'Bytes': 1,
-      'KB': 1024,
-      'MB': 1024 * 1024,
-      'GB': 1024 * 1024 * 1024,
-      'TB': 1024 * 1024 * 1024 * 1024,
+      Bytes: 1,
+      KB: 1024,
+      MB: 1024 * 1024,
+      GB: 1024 * 1024 * 1024,
+      TB: 1024 * 1024 * 1024 * 1024,
     };
 
     const match = sizeStr.match(/^([\d.]+)\s*([A-Za-z]+)$/);
@@ -419,8 +439,8 @@ export class HealthService implements OnModuleInit {
     const networkInterfaces = os.networkInterfaces();
     const externalIps = Object.values(networkInterfaces)
       .flat()
-      .filter(iface => iface && !iface.internal && iface.family === 'IPv4')
-      .map(iface => iface?.address ?? 'unknown');
+      .filter((iface) => iface && !iface.internal && iface.family === 'IPv4')
+      .map((iface) => iface?.address ?? 'unknown');
 
     return {
       cpu: {

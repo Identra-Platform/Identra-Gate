@@ -1,140 +1,147 @@
-import { Injectable, Logger, OnModuleInit, Param } from "@nestjs/common";
-import { Agent, DidsModule } from "@credo-ts/core";
-import { AskarModule } from "@credo-ts/askar";
+import { Injectable, Logger, OnModuleInit, Param } from '@nestjs/common';
+import { Agent, DidsModule } from '@credo-ts/core';
+import { AskarModule } from '@credo-ts/askar';
 import { askar } from '@openwallet-foundation/askar-nodejs';
-import { DidCommModule, DidCommWsOutboundTransport } from "@credo-ts/didcomm";
-import { HederaAnonCredsRegistry, HederaDidRegistrar, HederaDidResolver, HederaModule } from "@credo-ts/hedera"
-import { AnonCredsModule } from "@credo-ts/anoncreds";
-import { anoncreds } from "@hyperledger/anoncreds-nodejs";
-import { agentDependencies } from "@credo-ts/node";
-import { AgentConfig, ConfigService } from "src/config/config.service";
-import { v4 as uuidv4 } from "uuid";
-import * as bcrypt from "bcrypt";
-import { CredoAgentStore } from "./credo-agent-store";
+import { DidCommModule, DidCommWsOutboundTransport } from '@credo-ts/didcomm';
+import {
+  HederaAnonCredsRegistry,
+  HederaDidRegistrar,
+  HederaDidResolver,
+  HederaModule,
+} from '@credo-ts/hedera';
+import { AnonCredsModule } from '@credo-ts/anoncreds';
+import { anoncreds } from '@hyperledger/anoncreds-nodejs';
+import { agentDependencies } from '@credo-ts/node';
+import { AgentConfig, ConfigService } from 'src/config/config.service';
+import { v4 as uuidv4 } from 'uuid';
+import * as bcrypt from 'bcrypt';
+import { CredoAgentStore } from './credo-agent-store';
 
 type AgentModulesMap = {
-    didcomm: DidCommModule<{
-        transports: {
-            outbound: DidCommWsOutboundTransport[];
-        };
-    }>;
-    askar: AskarModule;
-    dids: DidsModule;
-    anoncreds: AnonCredsModule;
-    hedera: HederaModule;
+  didcomm: DidCommModule<{
+    transports: {
+      outbound: DidCommWsOutboundTransport[];
+    };
+  }>;
+  askar: AskarModule;
+  dids: DidsModule;
+  anoncreds: AnonCredsModule;
+  hedera: HederaModule;
 };
 
-@Injectable ()
+@Injectable()
 export class CredoAgentService implements OnModuleInit {
-    private readonly logger = new Logger(CredoAgentService.name);
-    private static instance: CredoAgentService;
-    private agent: Agent<AgentModulesMap> | null = null;
+  private readonly logger = new Logger(CredoAgentService.name);
+  private static instance: CredoAgentService;
+  private agent: Agent<AgentModulesMap> | null = null;
 
-    constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {}
 
-    static getInstance(): CredoAgentService {
-        if (!this.instance) {
-            this.instance = new CredoAgentService(new ConfigService());
-        }
-        return this.instance;
+  static getInstance(): CredoAgentService {
+    if (!this.instance) {
+      this.instance = new CredoAgentService(new ConfigService());
+    }
+    return this.instance;
+  }
+
+  async create(passphrase: string, mnemonic: string[]) {
+    const existingAgent = await CredoAgentStore.getInstance().load();
+    if (existingAgent) {
+      throw new Error('Credo Agent already exists');
     }
 
-    
-    async create(passphrase: string, mnemonic: string[]) {
-        const existingAgent = await CredoAgentStore.getInstance().load();
-        if (existingAgent) {
-            throw new Error("Credo Agent already exists");
-        }
+    const agentConfig: AgentConfig = {
+      walletId: uuidv4(),
+      walletKey: await bcrypt.hash(passphrase, 10),
+      menmonicHash: await bcrypt.hash(mnemonic.join(' '), 10),
+    };
+    await CredoAgentStore.getInstance().save(agentConfig);
+    this.logger.log('Credo Agent created and saved to storage');
 
-        const agentConfig: AgentConfig = {
-            walletId: uuidv4(),
-            walletKey: await bcrypt.hash(passphrase, 10),
-            menmonicHash: await bcrypt.hash(mnemonic.join(" "), 10) 
-        };
-        await CredoAgentStore.getInstance().save(agentConfig);
-        this.logger.log("Credo Agent created and saved to storage");
+    return this.loadAndInit(passphrase);
+  }
 
-        return this.loadAndInit(passphrase);
-    }
-    
-    async loadAndInit(password: string) {
-        if (this.agent) {
-            return this.agent;
-        }
-
-        const config = await CredoAgentStore.getInstance().load();
-        if (!config) {
-            throw new Error("Credo Agent not found in storage");
-        }
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        if (config.walletId !== passwordHash) {
-            throw new Error("Invalid password for Credo Agent");
-        }
-
-        this.agent = new Agent({
-            dependencies: agentDependencies,
-            modules: {
-                didcomm: new DidCommModule({
-                    transports: {
-                        outbound: [new DidCommWsOutboundTransport()]
-                    }
-                }),
-                askar: new AskarModule({
-                    askar,
-                    store: {
-                        id: config.walletId,
-                        key: config.walletId
-                    }
-                }),
-                dids: new DidsModule({
-                    registrars: [new HederaDidRegistrar()],
-                    resolvers: [new HederaDidResolver()]
-                }),
-                anoncreds: new AnonCredsModule({
-                    registries: [new HederaAnonCredsRegistry()],
-                    anoncreds
-                }),
-                hedera: new HederaModule({
-                    networks: [{
-                        network: "testnet",
-                        operatorId: "0.0.7427588",
-                        operatorKey: "302e020100300506032b657004220420b1f5f5f4e1c3e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4"
-                    }]
-                })
-            }
-        });
-        await this.agent.initialize();
-        this.logger.log("Credo Agent loaded and initialized from storage");
-        return this.agent;
+  async loadAndInit(password: string) {
+    if (this.agent) {
+      return this.agent;
     }
 
-    async onModuleInit() {
-        this.loadAndInit(this.configService.agent.walletKey);
+    const config = await CredoAgentStore.getInstance().load();
+    if (!config) {
+      throw new Error('Credo Agent not found in storage');
+    }
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    if (config.walletId !== passwordHash) {
+      throw new Error('Invalid password for Credo Agent');
     }
 
-    getAgent(): Agent {
-        if (!this.agent) {
-            throw new Error("Credo Agent not initialized");
-        }
-        return this.agent;
+    this.agent = new Agent({
+      dependencies: agentDependencies,
+      modules: {
+        didcomm: new DidCommModule({
+          transports: {
+            outbound: [new DidCommWsOutboundTransport()],
+          },
+        }),
+        askar: new AskarModule({
+          askar,
+          store: {
+            id: config.walletId,
+            key: config.walletId,
+          },
+        }),
+        dids: new DidsModule({
+          registrars: [new HederaDidRegistrar()],
+          resolvers: [new HederaDidResolver()],
+        }),
+        anoncreds: new AnonCredsModule({
+          registries: [new HederaAnonCredsRegistry()],
+          anoncreds,
+        }),
+        hedera: new HederaModule({
+          networks: [
+            {
+              network: 'testnet',
+              operatorId: '0.0.7427588',
+              operatorKey:
+                '302e020100300506032b657004220420b1f5f5f4e1c3e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4e4',
+            },
+          ],
+        }),
+      },
+    });
+    await this.agent.initialize();
+    this.logger.log('Credo Agent loaded and initialized from storage');
+    return this.agent;
+  }
+
+  async onModuleInit() {
+    this.loadAndInit();
+  }
+
+  getAgent(): Agent {
+    if (!this.agent) {
+      throw new Error('Credo Agent not initialized');
     }
+    return this.agent;
+  }
 
-    async shutdown() {
-        if (!this.agent) return;
-        await this.agent.shutdown();
-        this.logger.log("Credo Agent shutdown");
-        this.agent = null; 
-    }
+  async shutdown() {
+    if (!this.agent) return;
+    await this.agent.shutdown();
+    this.logger.log('Credo Agent shutdown');
+    this.agent = null;
+  }
 
-    async createDid(alias?: string)  {
-        const agent = this.getAgent();
+  async createDid(alias?: string) {
+    const agent = this.getAgent();
 
-        const didResult = await agent.dids.create({
-            method: this.configService.dids.defaultMethod,
-            alias,
-        });
+    const didResult = await agent.dids.create({
+      method: this.configService.dids.defaultMethod,
+      alias,
+    });
 
-        return didResult.didState.did ?? uuidv4();
-    }
+    return didResult.didState.did ?? uuidv4();
+  }
 }

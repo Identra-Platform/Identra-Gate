@@ -85,7 +85,6 @@ export interface AppConfig {
   agent: AgentConfig;
 }
 
-
 @Injectable()
 export class ConfigService {
   private readonly config: AppConfig;
@@ -96,7 +95,10 @@ export class ConfigService {
   }
 
   private loadEnviroment(): NodeJS.ProcessEnv {
-    const envPath = path.resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`);
+    const envPath = path.resolve(
+      process.cwd(),
+      `.env.${process.env.NODE_ENV || 'development'}`,
+    );
     const defaultEnvPath = path.resolve(process.cwd(), '.env');
 
     if (fs.existsSync(envPath)) {
@@ -123,7 +125,9 @@ export class ConfigService {
       REFRESH_TOKEN_EXPIRES_IN: Joi.string().default('7d'),
       BCRYPT_ROUNDS: Joi.number().min(10).max(15).default(12),
 
-      NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
+      NODE_ENV: Joi.string()
+        .valid('development', 'production', 'test')
+        .default('development'),
       PORT: Joi.number().port().default(3000),
       FRONTEND_URL: Joi.string().uri().default('http://localhost:5173'),
       CORS_ORIGINS: Joi.string().default('http://localhost:5173'),
@@ -142,31 +146,43 @@ export class ConfigService {
       VERIFICATION_TIMEOUT: Joi.number().min(1000).default(10000),
 
       EMAIL_ENABLED: Joi.boolean().default(false),
-      EMAIL_HOST: Joi.string().when('EMAIL_ENABLED', { is: true, then: Joi.required() }),
-      EMAIL_PORT: Joi.number().port().when('EMAIL_ENABLED', { is: true, then: Joi.required() }),
+      EMAIL_HOST: Joi.string().when('EMAIL_ENABLED', {
+        is: true,
+        then: Joi.required(),
+      }),
+      EMAIL_PORT: Joi.number()
+        .port()
+        .when('EMAIL_ENABLED', { is: true, then: Joi.required() }),
       EMAIL_SECURE: Joi.boolean().default(true),
-      EMAIL_USER: Joi.string().when('EMAIL_ENABLED', { is: true, then: Joi.required() }),
-      EMAIL_PASSWORD: Joi.string().when('EMAIL_ENABLED', { is: true, then: Joi.required() }),
+      EMAIL_USER: Joi.string().when('EMAIL_ENABLED', {
+        is: true,
+        then: Joi.required(),
+      }),
+      EMAIL_PASSWORD: Joi.string().when('EMAIL_ENABLED', {
+        is: true,
+        then: Joi.required(),
+      }),
       EMAIL_FROM: Joi.string().email().default('noreply@example.com'),
       EMAIL_TEMPLATES_PATH: Joi.string().default('./templates/email'),
 
-      LOG_LEVEL: Joi.string().valid('error', 'warn', 'info', 'debug', 'verbose').default('info'),
+      LOG_LEVEL: Joi.string()
+        .valid('error', 'warn', 'info', 'debug', 'verbose')
+        .default('info'),
       LOG_FILE_PATH: Joi.string().default('./logs'),
       LOG_MAX_SIZE: Joi.string().default('10m'),
       LOG_MAX_FILES: Joi.string().default('30d'),
 
       AGENT_STORAGE_PATH: Joi.string().required(),
-      AGENT_WALLET_KEY: Joi.string().required()
     })
-    .unknown(true)
-    .custom((value, helpers) => {
-      if (value.NODE_ENV === 'production' && value.JWT_SECRET.length < 32) {
-        return helpers.error('any.invalid', {
-          message: 'JWT_SECRET must be at least 32 characters in production',
-        })
-      }
-      return value;
-    });
+      .unknown(true)
+      .custom((value, helpers) => {
+        if (value.NODE_ENV === 'production' && value.JWT_SECRET.length < 32) {
+          return helpers.error('any.invalid', {
+            message: 'JWT_SECRET must be at least 32 characters in production',
+          });
+        }
+        return value;
+      });
 
     const { error, value: validatedEnv } = envSchema.validate(env, {
       abortEarly: false,
@@ -174,12 +190,18 @@ export class ConfigService {
     });
 
     if (error) {
-      const errorMessages = error.details.map(detail => detail.message).join(', ');
+      const errorMessages = error.details
+        .map((detail) => detail.message)
+        .join(', ');
       throw new Error(`Configuration validation failed: ${errorMessages}`);
     }
 
-    const corsOrigins = validatedEnv.CORS_ORIGINS.split(',').map(s => s.trim());
-    const allowedDidMethods = validatedEnv.ALLOWED_DID_METHODS.split(',').map(s => s.trim());
+    const corsOrigins = validatedEnv.CORS_ORIGINS.split(',').map((s) =>
+      s.trim(),
+    );
+    const allowedDidMethods = validatedEnv.ALLOWED_DID_METHODS.split(',').map(
+      (s) => s.trim(),
+    );
 
     return {
       database: {
@@ -238,8 +260,8 @@ export class ConfigService {
         maxFiles: validatedEnv.LOG_MAX_FILES,
       },
       agent: {
-        walletKey: validatedEnv.AGENT_WALLET_KEY
-      }
+        walletKey: validatedEnv.AGENT_STORAGE_PATH,
+      },
     };
   }
 

@@ -1,6 +1,15 @@
-import { Column, CreateDateColumn, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { Role } from "./role.entity";
-import { Log } from "../../audit/logs/entities/log.entity";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Role } from './role.entity';
+import { Log } from '../../audit/logs/entities/log.entity';
 
 @Entity()
 export class User {
@@ -13,7 +22,7 @@ export class User {
   @Column()
   name: string;
 
-  @ManyToMany(() => Role, userRole => userRole.users)
+  @ManyToMany(() => Role, (userRole) => userRole.users)
   @JoinTable()
   roles: Role[];
 
@@ -26,6 +35,6 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => Log, log => log.user)
+  @OneToMany(() => Log, (log) => log.user)
   logs: Log[];
 }

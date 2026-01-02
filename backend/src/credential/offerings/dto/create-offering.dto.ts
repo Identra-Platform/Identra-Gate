@@ -1,5 +1,12 @@
-import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator";
-import { CreateRequirementDto } from "./create-requirement.dto";
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { CreateRequirementDto } from './create-requirement.dto';
 
 export class CreateOfferingDto {
   @IsString()

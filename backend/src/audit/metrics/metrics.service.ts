@@ -7,7 +7,7 @@ import { Between, Repository } from 'typeorm';
 export class MetricsService {
   constructor(
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async getMetrics(from?: Date, to?: Date) {
@@ -21,7 +21,7 @@ export class MetricsService {
     const totalUsers = await userQueryBuilder.getCount();
 
     return {
-      users: { total: totalUsers }
-    }
+      users: { total: totalUsers },
+    };
   }
 }

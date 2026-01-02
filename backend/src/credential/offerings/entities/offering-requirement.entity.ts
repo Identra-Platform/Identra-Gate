@@ -1,15 +1,24 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { Offering } from "./offering.entity";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Offering } from './offering.entity';
 
-export type OfferingRequirementType = 'document' | 'credential' | 'information' | 'consent';
-export type OfferingRequirementFormat = 'image' | 'pdf' | 'text' | 'credential' | 'check';
+export type OfferingRequirementType =
+  | 'document'
+  | 'credential'
+  | 'information'
+  | 'consent';
+export type OfferingRequirementFormat =
+  | 'image'
+  | 'pdf'
+  | 'text'
+  | 'credential'
+  | 'check';
 
 @Entity()
 export class OfferingRequirement {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Offering, offer => offer.requirements)
+  @ManyToOne(() => Offering, (offer) => offer.requirements)
   offering: Offering;
 
   @Column()

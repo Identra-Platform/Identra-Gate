@@ -5,13 +5,13 @@ import { AuthController } from './auth.controller';
 import { AuthGuard } from './guards/auth.guard';
 
 @Module({
-    imports: [
-        JwtModule.register({
-            secret: process.env.JWT_SECRET || "super-secret-key",
-            signOptions: { expiresIn: '1h' },
-        }),
-    ],
-    providers: [AuthService, AuthGuard],
-    controllers: [AuthController],
+  imports: [
+    JwtModule.register({
+      secret: process.env.JWT_SECRET || 'super-secret-key',
+      signOptions: { expiresIn: '1h' },
+    }),
+  ],
+  providers: [AuthService, AuthGuard],
+  controllers: [AuthController],
 })
 export class AuthModule {}

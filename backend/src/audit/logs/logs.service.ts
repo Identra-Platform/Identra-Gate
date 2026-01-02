@@ -10,17 +10,19 @@ export class LogsService {
     @InjectRepository(Log)
     private readonly logRepository: Repository<Log>,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async log(message: string, userId: string, level: LogLevel) {
     const user = await this.userRepository.findOneOrFail({
-      where: { id: userId }
+      where: { id: userId },
     });
 
     const log = this.logRepository.create({
-      level, timestamp: new Date(), message,
-      user
+      level,
+      timestamp: new Date(),
+      message,
+      user,
     });
 
     return await this.logRepository.save(log);
@@ -30,9 +32,10 @@ export class LogsService {
     level: LogLevel = LogLevel.Error,
     from?: Date,
     to?: Date,
-    limit: number = 100
+    limit: number = 100,
   ) {
-    const queryBuilder = this.logRepository.createQueryBuilder('log')
+    const queryBuilder = this.logRepository
+      .createQueryBuilder('log')
       .where('log.level = :level', { level })
       .take(limit)
       .orderBy('log.timestamp', 'DESC');
@@ -44,11 +47,13 @@ export class LogsService {
       queryBuilder.andWhere('log.timestamp <= :to', { to });
     }
 
-    const [ logs, filtered ] = await queryBuilder.getManyAndCount();
+    const [logs, filtered] = await queryBuilder.getManyAndCount();
     const total = await this.logRepository.count();
 
     return {
-      logs, total, filtered
+      logs,
+      total,
+      filtered,
     };
   }
 }

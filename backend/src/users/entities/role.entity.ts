@@ -1,10 +1,10 @@
-import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
-import { User } from "./user.entity";
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { User } from './user.entity';
 
 export enum UserRole {
   Admin = 'admin',
   Issuer = 'issuer',
-  Verifier = 'verifier'
+  Verifier = 'verifier',
 }
 
 @Entity()
@@ -15,10 +15,10 @@ export class Role {
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.Verifier
+    default: UserRole.Verifier,
   })
   role: UserRole;
 
-  @ManyToMany(() => User, user => user.roles)
+  @ManyToMany(() => User, (user) => user.roles)
   users: User[];
 }

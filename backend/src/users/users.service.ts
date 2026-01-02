@@ -1,4 +1,10 @@
-import { ConflictException, Inject, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Equal, In, Repository } from 'typeorm';
@@ -14,31 +20,36 @@ export class UsersService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(Role)
-    private readonly roleRepository: Repository<Role>
+    private readonly roleRepository: Repository<Role>,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
     const existingUser = await this.userRepository.findOne({
-      where: { email: createUserDto.email }
+      where: { email: createUserDto.email },
     });
-    if (existingUser) throw new ConflictException('User with this email already exists');
+    if (existingUser)
+      throw new ConflictException('User with this email already exists');
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
     let roles: Role[] = await this.roleRepository.find({
-      where: { role: In(createUserDto.roles) }
+      where: { role: In(createUserDto.roles) },
     });
 
     if (roles.length !== createUserDto.roles.length) {
-      const foundRoles = roles.map(role => role.role);
-      const missingRoles = createUserDto.roles.filter(role => !foundRoles.includes(role));
-      throw new NotFoundException(`Roles not found: ${missingRoles.join(', ')} ${roles.map(role => role.role)}`);
+      const foundRoles = roles.map((role) => role.role);
+      const missingRoles = createUserDto.roles.filter(
+        (role) => !foundRoles.includes(role),
+      );
+      throw new NotFoundException(
+        `Roles not found: ${missingRoles.join(', ')} ${roles.map((role) => role.role)}`,
+      );
     }
 
     const user = this.userRepository.create({
       ...createUserDto,
       password: hashedPassword,
-      roles
+      roles,
     });
 
     return await this.userRepository.save(user);
@@ -48,7 +59,7 @@ export class UsersService {
     page: number = 1,
     limit: number = 20,
     search?: string,
-    role?: string
+    role?: string,
   ) {
     const queryBuilder = this.userRepository
       .createQueryBuilder('user')
@@ -76,15 +87,15 @@ export class UsersService {
     const pages = Math.ceil(total / limit);
     return {
       users,
-      pagination: { page, limit, total, pages }
+      pagination: { page, limit, total, pages },
     };
   }
 
   async findOne(id: string) {
     return await this.userRepository.findOneOrFail({
       where: { id },
-      relations: ['roles']
-    })
+      relations: ['roles'],
+    });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {

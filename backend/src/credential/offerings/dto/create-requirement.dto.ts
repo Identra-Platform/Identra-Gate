@@ -1,5 +1,14 @@
-import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
-import type { OfferingRequirementFormat, OfferingRequirementType } from "../entities/offering-requirement.entity";
+import {
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import type {
+  OfferingRequirementFormat,
+  OfferingRequirementType,
+} from '../entities/offering-requirement.entity';
 
 export class CreateRequirementDto {
   @IsEnum(['document', 'credential', 'information', 'consent'])

@@ -1,5 +1,10 @@
 export type HealthStatus = 'up' | 'down' | 'warning' | 'unknown';
-export type ServiceType = 'database' | 'filesystem' | 'memory' | 'network' | 'external';
+export type ServiceType =
+  | 'database'
+  | 'filesystem'
+  | 'memory'
+  | 'network'
+  | 'external';
 
 export interface HealthCheckResult {
   status: HealthStatus;

@@ -1,5 +1,14 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsBoolean,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class VerifyRecoveryDto {
   @ApiProperty({
@@ -12,7 +21,8 @@ export class VerifyRecoveryDto {
   email: string;
 
   @ApiProperty({
-    example: 'apple brave chair dance eagle flame grape house image jolly knife lemon money night ocean piano queen river sunny tiger unity voice world youth',
+    example:
+      'apple brave chair dance eagle flame grape house image jolly knife lemon money night ocean piano queen river sunny tiger unity voice world youth',
     description: 'Recovery phrase (12 or 24 words separated by spaces)',
   })
   @IsString()
