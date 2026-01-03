@@ -37,6 +37,7 @@ export interface CredentialConfig {
 }
 
 export interface IssuerConfig {
+  id: string;
   name: string;
   did?: string;
   logo?: string;
@@ -83,8 +84,6 @@ export class CredentialConfigService {
         this.appConfig.credentialConfig?.path || './credentials.json',
       );
 
-      console.log(configPath);
-
       if (fs.existsSync(configPath)) {
         const content = fs.readFileSync(configPath, 'utf8');
 
@@ -106,6 +105,7 @@ export class CredentialConfigService {
     if (!this.config.issuer) throw new Error('Missing issuer configuration');
     if (!this.config.credentials) throw new Error('Missing credentials configuration');
     if (!this.config.settings) throw new Error('Missing settings configuration');
+    if (!this.config.issuer.id) throw new Error('Missing id in configuration');
 
     for (const credential of this.config.credentials) {
       if (!credential.id) throw new Error(`Credential missing id`);

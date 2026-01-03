@@ -1,19 +1,19 @@
 import '@openwallet-foundation/askar-nodejs';
 
-import { Agent, DidRepository, DidsModule, Kms, Module, ModulesMap } from '@credo-ts/core';
-import { OpenId4VcHolderModule, OpenId4VcIssuerModule, OpenId4VcModule, OpenId4VcVerifierModule } from '@credo-ts/openid4vc';
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { LogsService } from 'src/audit/logs/logs.service';
+import { Agent, ConsoleLogger, DidsModule, LogLevel, ModulesMap } from '@credo-ts/core';
+import { OpenId4VcModule, OpenId4VcVerifierRepository } from '@credo-ts/openid4vc';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {} from 'src/audit/logs/logs.service';
 import { ConfigService } from 'src/config/config.service';
 import { HttpAdapterHost } from '@nestjs/core';
 import { Express } from 'express';
 import { agentDependencies } from '@credo-ts/node';
-import { AskarModule } from '@credo-ts/askar';
+import { AskarModule, AskarStoreManager } from '@credo-ts/askar';
 import { askar } from '@openwallet-foundation/askar-nodejs';
 import type { OpenId4VcApi, OpenId4VcHolderApi, OpenId4VcIssuerRecord, OpenId4VcModuleConfigOptions, OpenId4VcVerifierRecord } from '@credo-ts/openid4vc';
 import { CredentialConfigService } from 'src/config/credential-config.service';
 import { HederaDidCreateOptions, HederaDidRegistrar, HederaDidResolver, HederaModule } from '@credo-ts/hedera';
-import { exit } from 'process';
+import { OpenId4VcIssuerRepository } from 'node_modules/@credo-ts/openid4vc/build/openid4vc-issuer/repository/OpenId4VcIssuerRepository.mjs';
 
 process.removeAllListeners('unhandledRejection');
 
@@ -39,12 +39,13 @@ type AgentModules = {
   askar: AskarModule;
   hedera: HederaModule;
   dids: DidsModule;
-  openId4Vc: OpenId4VcModule;
+  openid4vc: OpenId4VcModule;
 };
 
 @Injectable()
 export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
   private agent: Agent<AgentModules> | null = null;
+  private readonly logger = new Logger(OpenId4VcService.name);
   private expressApp: Express;
   private enabledModules: ModulesMap;
   private issuer?: OpenId4VcIssuerRecord;
@@ -61,10 +62,14 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
     private readonly credentialConfigService: CredentialConfigService
   ) {}
 
-  onModuleInit() { 
+  async onModuleInit() { 
     const httpAdapter = this.httpAdapterHost.httpAdapter;
     if (httpAdapter.getType() === 'express') {
       this.expressApp = httpAdapter.getInstance();
+
+      await this.initialize();
+
+      if (!this.agent) throw new Error('Could not Initialize Agent');
     }
   }
 
@@ -79,10 +84,21 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
 
     try {
       await this.initializeAgent();
+
+      /* DEBUG */
+      //await this.resetRecords();
+
       await this.initializeActors();
     } catch (error) {
       throw error;
     }
+  }
+
+  private async resetRecords(){
+    if (!this.agent) return;
+
+    await this.agent.modules.askar.deleteStore();
+    await this.agent.modules.askar.provisionStore();
   }
 
   private async initializeAgent() {
@@ -103,7 +119,9 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
 
           const payload: CredentialRequestPayload = {
             credentialRequest: args.credentialRequest,
-            metadata: {}
+            metadata: {
+              issuerState: args.issuanceSession.state
+            }
           };
 
           const response = await this.credentialRequestHandler(payload);
@@ -144,21 +162,23 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
         registrars: [new HederaDidRegistrar()],
         resolvers: [new HederaDidResolver()]
       }),
-      openId4Vc: new OpenId4VcModule(openId4VcConfig)
+      openid4vc: new OpenId4VcModule(openId4VcConfig)
     };
 
     this.agent = new Agent({
+      config: {
+        logger: new ConsoleLogger(LogLevel.debug),
+        allowInsecureHttpUrls: true
+      },
       dependencies: agentDependencies,
       modules
     });
 
     await this.agent.initialize();
-
-    this.enabledModules = this.agent.dependencyManager.registeredModules;
   }
 
   private async initializeActors() {
-    if (this.enabledModules.openId4VcIssuer) {
+    if (this.configService.openId4Vc.issuer.enabled) {
       const issuerConfig = this.configService.openId4Vc.issuer;
 
       let issuerDid = issuerConfig.issuerDid;
@@ -174,8 +194,11 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
       const issuerDisplayConfig = this.credentialConfigService.getIssuerConfig();
 
       const api = this.agent?.openid4vc as unknown as OpenId4VcApi;
+      const existingIssuers = await this.agent?.openid4vc.issuer?.getAllIssuers();
+      if (existingIssuers && existingIssuers.length > 0) return;
+
       this.issuer = await api.issuer!.createIssuer({
-        issuerId: this.configService.openId4Vc.issuer.issuerDid,
+        issuerId: this.credentialConfigService.getIssuerConfig().id,
         display: [{
           name: issuerDisplayConfig.name,
           locale: 'en-US',
@@ -195,15 +218,9 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
         } : undefined
       });
     }
-    if (this.enabledModules.openId4VcVerifier) {
-
+    if (this.configService.openId4Vc.verifier.enabled) {
       const api = this.agent?.openid4vc as unknown as OpenId4VcApi;
       this.verifier = await api.verifier!.createVerifier({});
-    }
-    if (this.enabledModules.openId4VcHolder) {
-
-      const api = this.agent?.openid4vc as unknown as OpenId4VcApi;
-      this.holder = api.holder;
     }
   }
 
@@ -227,6 +244,8 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
 
         const did = result.didState.did!;
         this.credentialConfigService.setIssuerDid(did);
+
+        console.log(did);
 
         return did;
       }
