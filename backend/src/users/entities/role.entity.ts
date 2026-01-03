@@ -13,7 +13,7 @@ export class Role {
   id: string;
 
   @Column({
-    type: 'text',
+    type: 'enum',
     enum: UserRole,
     default: UserRole.Verifier,
   })

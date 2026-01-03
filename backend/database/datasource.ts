@@ -4,8 +4,6 @@ import { Role } from '../src/users/entities/role.entity';
 import { User } from '../src/users/entities/user.entity';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { Log } from '../src/audit/logs/entities/log.entity';
-import { Offering } from 'src/credential/offerings/entities/offering.entity';
-import { OfferingRequirement } from 'src/credential/offerings/entities/offering-requirement.entity';
 
 const configService = new ConfigService();
 
@@ -16,7 +14,7 @@ export const dataSourceOptions: DataSourceOptions = {
   username: configService.database.username,
   password: configService.database.password,
   database: configService.database.database,
-  entities: [User, Role, Log, Offering, OfferingRequirement],
+  entities: [User, Role, Log],
   migrations: ['./migration/**/*{.js,.ts}'],
   synchronize: true,
 };

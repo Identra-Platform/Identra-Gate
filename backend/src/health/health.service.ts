@@ -160,7 +160,7 @@ export class HealthService implements OnModuleInit {
     const startTime = Date.now();
 
     try {
-      const dataDir = path.dirname(this.configService.setup.setupFlagPath);
+      const dataDir = path.dirname(this.configService.credentialConfig.path ?? './credentials.json');
 
       if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
@@ -250,7 +250,7 @@ export class HealthService implements OnModuleInit {
     const startTime = Date.now();
 
     try {
-      const dataDir = path.dirname(this.configService.setup.setupFlagPath);
+      const dataDir = path.dirname(this.configService.credentialConfig.path?? './credentials.json');
       const freeSpace = await this.getFreeDiskSpace(dataDir);
 
       const freeBytes = this.parseBytes(freeSpace);

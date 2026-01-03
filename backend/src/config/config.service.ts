@@ -28,14 +28,6 @@ export interface ServerConfig {
   corsOrigins: string[];
 }
 
-export interface SetupConfig {
-  requireInitialSetup: boolean;
-  setupFlagPath: string;
-  minPasswordLength: number;
-  recoveryPhraseWords: number;
-  allowSetupReset: boolean;
-}
-
 export interface CredentialsConfig {
   defaultValidityDays: number;
   maxBulkIssue: number;
@@ -70,19 +62,42 @@ export interface LoggingConfig {
 export interface AgentConfig {
   walletId: string;
   walletKey: string;
-  storagePath: string;
+}
+
+export interface OpenId4VcIssuerConfig {
+  enabled: boolean;
+  baseUrl: string;
+  issuerDid?: string;
+  autoCreateDid?: boolean;
+}
+
+export interface OpenId4VcVerifierConfig {
+  enabled: boolean;
+  baseUrl: string;
+}
+
+export interface OpenId4VcConfig {
+  issuer: OpenId4VcIssuerConfig;
+  verifier: OpenId4VcVerifierConfig;
+}
+
+export interface CredentialConfig {
+  path?: string;
+  autoReload?: boolean;
+  watchForChanges?: boolean;
 }
 
 export interface AppConfig {
   database: DatabaseConfig;
   auth: AuthConfig;
   server: ServerConfig;
-  setup: SetupConfig;
   credentials: CredentialsConfig;
   dids: DIDsConfig;
   email: EmailConfig;
   logging: LoggingConfig;
   agent: AgentConfig;
+  openId4Vc: OpenId4VcConfig;
+  credentialConfig: CredentialConfig;
 }
 
 @Injectable()
@@ -132,12 +147,6 @@ export class ConfigService {
       FRONTEND_URL: Joi.string().uri().default('http://localhost:5173'),
       CORS_ORIGINS: Joi.string().default('http://localhost:5173'),
 
-      REQUIRE_INITIAL_SETUP: Joi.boolean().default(true),
-      SETUP_FLAG_PATH: Joi.string().default('./data/setup-completed.flag'),
-      MIN_PASSWORD_LENGTH: Joi.number().min(8).default(12),
-      RECOVERY_PHRASE_WORDS: Joi.number().min(12).max(24).default(24),
-      ALLOW_SETUP_RESET: Joi.boolean().default(true),
-
       DEFAULT_VALIDITY_DAYS: Joi.number().min(1).default(365),
       MAX_BULK_ISSUE: Joi.number().min(1).max(1000).default(100),
 
@@ -172,9 +181,24 @@ export class ConfigService {
       LOG_MAX_SIZE: Joi.string().default('10m'),
       LOG_MAX_FILES: Joi.string().default('30d'),
 
-      AGENT_WALLET_ID: Joi.string().optional(), // Will be generated during setup
-      AGENT_WALLET_KEY: Joi.string().optional(), // Will be provided during setup
-      AGENT_STORAGE_PATH: Joi.string().default('./data/agent-config.json'),
+      AGENT_WALLET_ID: Joi.string().required(),
+      AGENT_WALLET_KEY: Joi.string().required(),
+
+      OPENID4VC_ISSUER_ENABLED: Joi.boolean().default(false),
+      OPENID4VC_ISSUER_BASE_URL: Joi.string().uri().when('OPENID4VC_ISSUER_ENABLED', {
+        is: true,
+        then: Joi.required(),
+      }),
+      OPENID4VC_ISSUER_DID: Joi.string().optional(),
+      OPENID4VC_AUTO_CREATE_DID: Joi.boolean().default(true),
+      OPENID4VC_VERIFIER_ENABLED: Joi.boolean().default(false),
+      OPENID4VC_VERIFIER_BASE_URL: Joi.string().uri().when('OPENID4VC_VERIFIER_ENABLED', {
+        is: true,
+        then: Joi.required(),
+      }),
+
+      CREDENTIAL_CONFIG_PATH: Joi.string().default('../credentials.json'),
+      CREDENTIAL_AUTO_RELOAD: Joi.boolean().default(false),
     })
       .unknown(true)
       .custom((value, helpers) => {
@@ -227,13 +251,6 @@ export class ConfigService {
         frontendUrl: validatedEnv.FRONTEND_URL,
         corsOrigins,
       },
-      setup: {
-        requireInitialSetup: validatedEnv.REQUIRE_INITIAL_SETUP,
-        setupFlagPath: validatedEnv.SETUP_FLAG_PATH,
-        minPasswordLength: validatedEnv.MIN_PASSWORD_LENGTH,
-        recoveryPhraseWords: validatedEnv.RECOVERY_PHRASE_WORDS,
-        allowSetupReset: validatedEnv.ALLOW_SETUP_RESET,
-      },
       credentials: {
         defaultValidityDays: validatedEnv.DEFAULT_VALIDITY_DAYS,
         maxBulkIssue: validatedEnv.MAX_BULK_ISSUE,
@@ -259,12 +276,27 @@ export class ConfigService {
         level: validatedEnv.LOG_LEVEL,
         filePath: validatedEnv.LOG_FILE_PATH,
         maxSize: validatedEnv.LOG_MAX_SIZE,
-        maxFiles: validatedEnv.LOG_MAX_FILES,
+        maxFiles: validatedEnv.LOG_MAX_FILES
       },
       agent: {
         walletId: validatedEnv.AGENT_WALLET_ID,
-        walletKey: validatedEnv.AGENT_WALLET_KEY,
-        storagePath: validatedEnv.AGENT_STORAGE_PATH
+        walletKey: validatedEnv.AGENT_WALLET_KEY
+      },
+      openId4Vc: {
+        issuer: {
+          enabled: validatedEnv.OPENID4VC_ISSUER_ENABLED,
+          baseUrl: validatedEnv.OPENID4VC_ISSUER_BASE_URL,
+          issuerDid: validatedEnv.OPENID4VC_ISSUER_DID,
+          autoCreateDid: validatedEnv.OPENID4VC_AUTO_CREATE_DID
+        },
+        verifier: {
+          enabled: validatedEnv.OPENID4VC_VERIFIER_ENABLED,
+          baseUrl: validatedEnv.OPENID4VC_VERIFIER_BASE_URL
+        }
+      },
+      credentialConfig: {
+        path: validatedEnv.CREDENTIAL_CONFIG_PATH,
+        autoReload: validatedEnv.CREDENTIAL_AUTO_RELOAD,
       }
     };
   }
@@ -279,10 +311,6 @@ export class ConfigService {
 
   get server(): ServerConfig {
     return this.config.server;
-  }
-
-  get setup(): SetupConfig {
-    return this.config.setup;
   }
 
   get credentials(): CredentialsConfig {
@@ -303,6 +331,14 @@ export class ConfigService {
 
   get agent(): AgentConfig {
     return this.config.agent;
+  }
+
+  get openId4Vc(): OpenId4VcConfig {
+    return this.config.openId4Vc;
+  }
+
+  get credentialConfig(): CredentialConfig {
+    return this.config.credentialConfig;
   }
 
   get all(): AppConfig {
