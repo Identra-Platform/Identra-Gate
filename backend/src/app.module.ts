@@ -9,6 +9,8 @@ import { dataSourceOptions } from '../database/datasource';
 import { LogsModule } from './audit/logs/logs.module';
 import { MetricsModule } from './audit/metrics/metrics.module';
 import { OpenId4VcModule } from './openid4vc/openid4vc.module';
+import { CredentialsModule } from './credentials/credentials.module';
+import { NetworkInfoModule } from './network-info/network-info.module';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { OpenId4VcModule } from './openid4vc/openid4vc.module';
     MetricsModule,
     TypeOrmModule.forRoot(dataSourceOptions),
     OpenId4VcModule,
+    CredentialsModule,
+    NetworkInfoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

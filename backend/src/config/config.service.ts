@@ -66,14 +66,14 @@ export interface AgentConfig {
 
 export interface OpenId4VcIssuerConfig {
   enabled: boolean;
-  baseUrl: string;
+  endpoint: string;
   issuerDid?: string;
   autoCreateDid?: boolean;
 }
 
 export interface OpenId4VcVerifierConfig {
   enabled: boolean;
-  baseUrl: string;
+  endpoint: string;
 }
 
 export interface OpenId4VcConfig {
@@ -185,14 +185,14 @@ export class ConfigService {
       AGENT_WALLET_KEY: Joi.string().required(),
 
       OPENID4VC_ISSUER_ENABLED: Joi.boolean().default(false),
-      OPENID4VC_ISSUER_BASE_URL: Joi.string().uri().when('OPENID4VC_ISSUER_ENABLED', {
+      OPENID4VC_ISSUER_ENDPOINT: Joi.string().when('OPENID4VC_ISSUER_ENABLED', {
         is: true,
         then: Joi.required(),
       }),
       OPENID4VC_ISSUER_DID: Joi.string().optional(),
       OPENID4VC_AUTO_CREATE_DID: Joi.boolean().default(true),
       OPENID4VC_VERIFIER_ENABLED: Joi.boolean().default(false),
-      OPENID4VC_VERIFIER_BASE_URL: Joi.string().uri().when('OPENID4VC_VERIFIER_ENABLED', {
+      OPENID4VC_VERIFIER_ENDPOINT: Joi.string().when('OPENID4VC_VERIFIER_ENABLED', {
         is: true,
         then: Joi.required(),
       }),
@@ -285,13 +285,13 @@ export class ConfigService {
       openId4Vc: {
         issuer: {
           enabled: validatedEnv.OPENID4VC_ISSUER_ENABLED,
-          baseUrl: validatedEnv.OPENID4VC_ISSUER_BASE_URL,
+          endpoint: validatedEnv.OPENID4VC_ISSUER_ENDPOINT,
           issuerDid: validatedEnv.OPENID4VC_ISSUER_DID,
           autoCreateDid: validatedEnv.OPENID4VC_AUTO_CREATE_DID
         },
         verifier: {
           enabled: validatedEnv.OPENID4VC_VERIFIER_ENABLED,
-          baseUrl: validatedEnv.OPENID4VC_VERIFIER_BASE_URL
+          endpoint: validatedEnv.OPENID4VC_VERIFIER_ENDPOINT
         }
       },
       credentialConfig: {

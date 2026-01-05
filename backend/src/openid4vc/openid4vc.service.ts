@@ -1,6 +1,6 @@
 import '@openwallet-foundation/askar-nodejs';
 
-import { Agent, ConsoleLogger, DidsModule, LogLevel, ModulesMap } from '@credo-ts/core';
+import { Agent, ClaimFormat, ConsoleLogger, DidsModule, LogLevel, ModulesMap, SdJwtVcSignOptions } from '@credo-ts/core';
 import { OpenId4VcModule, OpenId4VcVerifierRepository } from '@credo-ts/openid4vc';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {} from 'src/audit/logs/logs.service';
@@ -10,19 +10,22 @@ import { Express } from 'express';
 import { agentDependencies } from '@credo-ts/node';
 import { AskarModule, AskarStoreManager } from '@credo-ts/askar';
 import { askar } from '@openwallet-foundation/askar-nodejs';
-import type { OpenId4VcApi, OpenId4VcHolderApi, OpenId4VcIssuerRecord, OpenId4VcModuleConfigOptions, OpenId4VcVerifierRecord } from '@credo-ts/openid4vc';
+import type { OpenId4VcApi, OpenId4VcHolderApi, OpenId4VciSignSdJwtCredentials, OpenId4VcIssuerRecord, OpenId4VcModuleConfigOptions, OpenId4VcVerifierRecord } from '@credo-ts/openid4vc';
 import { CredentialConfigService } from 'src/config/credential-config.service';
 import { HederaDidCreateOptions, HederaDidRegistrar, HederaDidResolver, HederaModule } from '@credo-ts/hedera';
 import { OpenId4VcIssuerRepository } from 'node_modules/@credo-ts/openid4vc/build/openid4vc-issuer/repository/OpenId4VcIssuerRepository.mjs';
+import { NetworkInfoService } from 'src/network-info/network-info.service';
+import { SessionManagerService } from './session-manager/session-manager.service';
+import { Repository } from 'typeorm';
+import { IssuedCredential } from 'src/credentials/entities/issued-credential.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 process.removeAllListeners('unhandledRejection');
 
 export interface CredentialRequestPayload {
   credentialRequest: any;
   metadata: {
-    issuerState?: string;
-    preAuthorizedCode?: string;
-    clientId?: string;
+    sessionId?: string | undefined;
   };
 }
 
@@ -47,10 +50,6 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
   private agent: Agent<AgentModules> | null = null;
   private readonly logger = new Logger(OpenId4VcService.name);
   private expressApp: Express;
-  private enabledModules: ModulesMap;
-  private issuer?: OpenId4VcIssuerRecord;
-  private verifier?: OpenId4VcVerifierRecord;
-  private holder?: OpenId4VcHolderApi;
 
   private credentialRequestHandler?: (
     payload: CredentialRequestPayload,
@@ -59,7 +58,11 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpAdapterHost: HttpAdapterHost,
-    private readonly credentialConfigService: CredentialConfigService
+    private readonly credentialConfigService: CredentialConfigService,
+    private readonly networkInfoService: NetworkInfoService,
+    private readonly sessionManager: SessionManagerService,
+    @InjectRepository(IssuedCredential)
+    private readonly issuedCredentialRepository: Repository<IssuedCredential>
   ) {}
 
   async onModuleInit() { 
@@ -86,7 +89,7 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
       await this.initializeAgent();
 
       /* DEBUG */
-      //await this.resetRecords();
+      await this.resetRecords();
 
       await this.initializeActors();
     } catch (error) {
@@ -101,6 +104,23 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
     await this.agent.modules.askar.provisionStore();
   }
 
+  private async getVerificaitionMethodFromDid(did: string) {
+    const result = await this.agent?.dids.resolve(did);
+    if (result?.didResolutionMetadata.error) throw result?.didResolutionMetadata.error;
+
+    return result?.didDocument?.verificationMethod![0].id;
+  }
+
+  private formatCredential(config: any, claims: any) {
+    return {
+      ...config,
+      vct: config.credentialType,
+      fields: {
+        ...claims
+      }
+    };
+  }
+
   private async initializeAgent() {
     const config = this.configService.openId4Vc;
     const agentConfig = this.configService.agent;
@@ -109,35 +129,84 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
       app: this.expressApp
     };
 
+    const baseUrl = `http://${this.networkInfoService.getLocalIP()}:${this.configService.server.port}`;
     if (config.issuer.enabled) {
-      openId4VcConfig.issuer = {
-        baseUrl: config.issuer.baseUrl,
-        credentialRequestToCredentialMapper: async (args) => {
-          if (!this.credentialRequestHandler) {
-            throw new Error('No credential request handler set');
+      const issuerHandler = async (args): Promise<OpenId4VciSignSdJwtCredentials> => {
+        const payload: CredentialRequestPayload = {
+          credentialRequest: args.credentialRequest,
+          metadata: {
+            sessionId: args.issuanceSession.issuanceMetadata?.sessionId as string
           }
+        };
 
-          const payload: CredentialRequestPayload = {
-            credentialRequest: args.credentialRequest,
-            metadata: {
-              issuerState: args.issuanceSession.state
-            }
-          };
+        const { metadata } = payload;
 
-          const response = await this.credentialRequestHandler(payload);
-
-          return {
-            credentials: [response.credential],
-            format: 'vc+sd-jwt',
-            type: 'credentials'          
-          };
+        const sessionId = metadata.sessionId;
+        if (!sessionId) {
+          throw new Error('No session ID found in request');
         }
+
+        const sessionData = this.sessionManager.getSession(sessionId);
+        if (!sessionData) {
+          throw new Error('Session not found');
+        }
+
+        const credentialConfig = this.credentialConfigService.getCredentialById(sessionData.credentialId);
+        if (!credentialConfig) {
+          throw new Error('Credential configuration not found');
+        }
+
+        this.sessionManager.completeSession(sessionId);
+
+        const response = {
+          credential: this.formatCredential(credentialConfig, sessionData.claims),
+          format: credentialConfig.format,
+          holderDid: sessionData.holderDid
+        };
+
+        const credential = this.credentialConfigService.getCredentialById(sessionData.credentialId);
+        const disclosureKeys = credential!.fields.map(field =>
+          Array.isArray(field.path) && field.path.length > 0
+            ? field.path[field.path.length - 1].toString()
+            : field.name
+        );
+
+        const result = await Promise.all(args.holderBinding.keys.map(async (binding: any): Promise<SdJwtVcSignOptions> => ({  
+          payload: response.credential,  
+          holder: binding,
+          issuer: {
+            method: 'did',
+            didUrl: (await this.getVerificaitionMethodFromDid(await this.createOrGetIssuerDid()))!
+          },
+          disclosureFrame: {
+            _sd: disclosureKeys
+          }
+        })));
+
+        const issuedCredential = await this.issuedCredentialRepository.findOneOrFail({
+          where: { transactionId: sessionData.sessionId }
+        });
+        await this.issuedCredentialRepository.update(issuedCredential, {
+          status: 'issued'
+        })
+
+        return {
+          credentials: result,
+          format: ClaimFormat.SdJwtDc,
+          type: 'credentials'as const
+        };
+      };
+
+      openId4VcConfig.issuer = {
+        baseUrl: `${baseUrl}${config.issuer.endpoint}`,
+        accessTokenExpiresInSeconds: 300,
+        credentialRequestToCredentialMapper: issuerHandler
       };
     }
 
     if (config.verifier.enabled){
       openId4VcConfig.verifier = {
-        baseUrl: config.verifier.baseUrl
+        baseUrl: `${baseUrl}${config.verifier.endpoint}`
       };
     }
 
@@ -146,8 +215,14 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
         askar,
         store: {
           id: agentConfig.walletId,
-          key: agentConfig.walletKey
-        }
+          key: agentConfig.walletKey,
+          database: {
+            type: 'sqlite',
+            config: {
+              path: `./data/${this.configService.database.database}`
+            }
+          }
+        },
       }),
       hedera: new HederaModule({
         networks: [
@@ -167,7 +242,7 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
 
     this.agent = new Agent({
       config: {
-        logger: new ConsoleLogger(LogLevel.debug),
+        logger: new ConsoleLogger(LogLevel.trace),
         allowInsecureHttpUrls: true
       },
       dependencies: agentDependencies,
@@ -179,6 +254,7 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
 
   private async initializeActors() {
     if (this.configService.openId4Vc.issuer.enabled) {
+
       const issuerConfig = this.configService.openId4Vc.issuer;
 
       let issuerDid = issuerConfig.issuerDid;
@@ -190,15 +266,16 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
         throw new Error('No issuer DID configured and auto-creation is disabled');
       }
 
-      const config = this.credentialConfigService.convertToOpenId4VciFormat();
-      const issuerDisplayConfig = this.credentialConfigService.getIssuerConfig();
-
+      
       const api = this.agent?.openid4vc as unknown as OpenId4VcApi;
       const existingIssuers = await this.agent?.openid4vc.issuer?.getAllIssuers();
       if (existingIssuers && existingIssuers.length > 0) return;
-
-      this.issuer = await api.issuer!.createIssuer({
-        issuerId: this.credentialConfigService.getIssuerConfig().id,
+      
+      const config = this.credentialConfigService.convertToOpenId4VciFormat();
+      const issuerDisplayConfig = this.credentialConfigService.getIssuerConfig();
+      
+      await api.issuer!.createIssuer({
+        issuerId: this.credentialConfigService.getId(),
         display: [{
           name: issuerDisplayConfig.name,
           locale: 'en-US',
@@ -219,8 +296,13 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
       });
     }
     if (this.configService.openId4Vc.verifier.enabled) {
+      const existingVerifier = await this.agent?.openid4vc.verifier?.getAllVerifiers();
+      if (existingVerifier && existingVerifier.length > 0) return;
+
       const api = this.agent?.openid4vc as unknown as OpenId4VcApi;
-      this.verifier = await api.verifier!.createVerifier({});
+      await api.verifier!.createVerifier({
+        verifierId: this.credentialConfigService.getId()
+      });
     }
   }
 
@@ -245,14 +327,49 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
         const did = result.didState.did!;
         this.credentialConfigService.setIssuerDid(did);
 
-        console.log(did);
-
         return did;
       }
       return issuerDid;
     } catch (error) {
       throw new Error(`Could not create or retrieve an issuer DID: ${error}`);
     }
+  }
+
+  async createCredentialOfferWithClaims(
+    credentialId: string,
+    claims: Record<string, any>,
+    holderDid?: string,
+    options?: {
+      pinRequired?: boolean;
+      pinLength?: number;
+    }
+  ) {
+    const sessionId = this.sessionManager.createSession(credentialId, claims, holderDid);
+
+    const result = await this.issuer?.createCredentialOffer({
+      issuerId: this.credentialConfigService.getId(),
+      credentialConfigurationIds: [credentialId],
+      preAuthorizedCodeFlowConfig: {
+        txCode: options?.pinRequired ? {
+          input_mode: 'numeric',
+          length: options?.pinLength || 4,
+          description: 'Accept credential offer'
+        } : undefined
+      },
+      issuanceMetadata: {
+        sessionId
+      }
+    });
+
+    if (!result) {
+      throw new Error('Could not create credential offer');
+    }
+    
+    return {
+      offerData: result.credentialOffer,
+      txCode: result.issuanceSession.userPin,
+      sessionId: result.issuanceSession.id,
+    };
   }
 
   getAgent(): Agent | null {
@@ -263,5 +380,12 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
     if (this.agent) {
       await this.agent.shutdown();
     }
+  }
+
+  get issuer() {
+    return this.agent?.openid4vc.issuer;
+  }
+  get verifier() {
+    return this.agent?.openid4vc.verifier;
   }
 }

@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { Injectable } from '@nestjs/common';
+import { OpenId4VciCredentialConfigurationsSupportedWithFormats, OpenId4VciCredentialConfigurationSupportedWithFormats } from '@credo-ts/openid4vc';
 
 export interface FieldConfig {
   name: string;
@@ -21,7 +22,7 @@ export interface CredentialConfig {
   id: string;
   name: string;
   description: string;
-  format: 'sd-jwt' | 'jwt' | 'json-ld';
+  format: 'sd-jwt';
   credentialType?: string;
   credentialTypes?: string[];
   display: {
@@ -37,7 +38,6 @@ export interface CredentialConfig {
 }
 
 export interface IssuerConfig {
-  id: string;
   name: string;
   did?: string;
   logo?: string;
@@ -62,6 +62,7 @@ export interface SettingsConfig {
 }
 
 export interface CredentialConfiguration {
+  id: string;
   version: string;
   lastUpdated: string;
   issuer: IssuerConfig;
@@ -101,23 +102,19 @@ export class CredentialConfigService {
   }
 
   private validateConfiguration() {
+    if (!this.config.id) throw new Error('Missing id in configuration');
     if (!this.config.version) throw new Error('Missing version in configuration');
     if (!this.config.issuer) throw new Error('Missing issuer configuration');
     if (!this.config.credentials) throw new Error('Missing credentials configuration');
     if (!this.config.settings) throw new Error('Missing settings configuration');
-    if (!this.config.issuer.id) throw new Error('Missing id in configuration');
 
     for (const credential of this.config.credentials) {
       if (!credential.id) throw new Error(`Credential missing id`);
       if (!credential.name) throw new Error(`Credential ${credential.id} missing name`);
       if (!credential.format) throw new Error(`Credential ${credential.id} missing format`);
       
-      if (credential.format === 'sd-jwt' && !credential.credentialType) {
+      if (!credential.credentialType) {
         throw new Error(`SD-JWT credential ${credential.id} missing credentialType`);
-      }
-      
-      if (credential.format === 'jwt' && !credential.credentialTypes) {
-        throw new Error(`JWT credential ${credential.id} missing credentialTypes`);
       }
     }
   }
@@ -150,14 +147,15 @@ export class CredentialConfigService {
     }
   }
 
-  convertToOpenId4VciFormat(): Record<string, any> {
-    const credentialConfigurationsSupported: Record<string, any> = {};
+  convertToOpenId4VciFormat(): OpenId4VciCredentialConfigurationsSupportedWithFormats {
+    const credentialConfigurationsSupported: OpenId4VciCredentialConfigurationsSupportedWithFormats = {};
 
     for (const credential of this.config.credentials){
       if (!credential.active) continue;
 
-      const openIdConfig: any = {
-        format: this.mapFormat(credential.format),
+      const openIdConfig: OpenId4VciCredentialConfigurationSupportedWithFormats = {
+        format: 'dc+sd-jwt',
+        vct: credential.credentialType!,
         credential_metadata: {
           display: [{
             name: credential.name,
@@ -175,40 +173,48 @@ export class CredentialConfigService {
         }
       };
 
-      if (credential.format === 'sd-jwt') {
-        openIdConfig.vct = credential.credentialType;
-
-        if (credential.fields && credential.fields.length > 0) {
-          openIdConfig.credential_metadata.claims  = credential.fields.map(field => ({
-            path: field.path,
-            mandatory: field.required || false,
-            display: [{
-              name: field.name,
-              locale: 'en-US',
-              description: field.description
-            }]
-          }));
-        }
-      } else if (credential.format === 'jwt') {
-        openIdConfig.types = credential.credentialTypes;
+      if (credential.fields && credential.fields.length > 0&& openIdConfig.credential_metadata) {
+        openIdConfig.credential_metadata.claims  = credential.fields.map(field => ({
+          path: Array.isArray(field.path) && field.path.length > 0 
+            ? [field.path[0], ...field.path.slice(1)] 
+            : ['credentialSubject', field.name],
+          mandatory: field.required || false,
+          display: [{
+            name: field.name,
+            locale: 'en-US',
+            description: field.description
+          }]
+        }));
       }
 
       openIdConfig.cryptographic_binding_methods_supported = ['did', 'jwk'];
       openIdConfig.credential_signing_alg_values_supported = this.config.settings.supportedAlgorithms;
+      openIdConfig.proof_types_supported = this.config.settings.supportedProofTypes.reduce((acc, type) => {
+        acc[type] = {
+          proof_signing_alg_values_supported: this.config.settings.supportedAlgorithms
+        };
+        return acc;
+      }, {} as Record<string, {
+        proof_signing_alg_values_supported: string[];
+      }>);
 
       credentialConfigurationsSupported[credential.id] = openIdConfig;
     }
 
-    return credentialConfigurationsSupported;
+    return credentialConfigurationsSupported
   }
 
-  private mapFormat(format: string): string {
-    const formatMap = {
-      'sd-jwt': 'dc+jwt-sd',
-      'jwt': 'jwt_vc_json',
-      'json-ld': 'ldp_vc'
-    };
-    return formatMap[format] || format;
+  private mapFormat(format: string) {
+    switch (format) {
+      case 'sd-jwt': return 'dc+sd-jwt';
+      case 'jwt': return 'jwt_vc_json';
+      case 'json-ld': return 'ldp_vc';
+    }
+    throw new Error('Invalid credential format');
+  }
+
+  getId(): string {
+    return this.config.id;
   }
 
   getAllCredentials(): CredentialConfig[] {

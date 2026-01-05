@@ -8,16 +8,5 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
   await app.listen(process.env.PORT ?? 3000);
 
-  const server = app.getHttpAdapter().getInstance();
-  const router = server.router;
-
-  const availableRoutes: [] = router.stack
-    .map(layer => {
-      if (layer.route) {
-        return layer.route?.path;
-      }
-    })
-    .filter(item => item !== undefined);
-  console.log(availableRoutes);
 }
 bootstrap();
