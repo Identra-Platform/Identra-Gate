@@ -10,7 +10,7 @@ import { Express } from 'express';
 import { agentDependencies } from '@credo-ts/node';
 import { AskarModule, AskarStoreManager } from '@credo-ts/askar';
 import { askar } from '@openwallet-foundation/askar-nodejs';
-import type { OpenId4VcApi, OpenId4VcHolderApi, OpenId4VciSignSdJwtCredentials, OpenId4VcIssuerRecord, OpenId4VcModuleConfigOptions, OpenId4VcVerifierRecord } from '@credo-ts/openid4vc';
+import type { OpenId4VcApi, OpenId4VcHolderApi, OpenId4VciCredentialRequestToCredentialMapperOptions, OpenId4VciSignSdJwtCredentials, OpenId4VcIssuerRecord, OpenId4VcModuleConfigOptions, OpenId4VcVerifierRecord } from '@credo-ts/openid4vc';
 import { CredentialConfigService } from 'src/config/credential-config.service';
 import { HederaDidCreateOptions, HederaDidRegistrar, HederaDidResolver, HederaModule } from '@credo-ts/hedera';
 import { OpenId4VcIssuerRepository } from 'node_modules/@credo-ts/openid4vc/build/openid4vc-issuer/repository/OpenId4VcIssuerRepository.mjs';
@@ -131,7 +131,7 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
 
     const baseUrl = `http://${this.networkInfoService.getLocalIP()}:${this.configService.server.port}`;
     if (config.issuer.enabled) {
-      const issuerHandler = async (args): Promise<OpenId4VciSignSdJwtCredentials> => {
+      const issuerHandler = async (args: OpenId4VciCredentialRequestToCredentialMapperOptions): Promise<OpenId4VciSignSdJwtCredentials> => {
         const payload: CredentialRequestPayload = {
           credentialRequest: args.credentialRequest,
           metadata: {
@@ -184,7 +184,7 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
         })));
 
         const issuedCredential = await this.issuedCredentialRepository.findOneOrFail({
-          where: { transactionId: sessionData.sessionId }
+          where: { transactionId: sessionId }
         });
         await this.issuedCredentialRepository.update(issuedCredential, {
           status: 'issued'
@@ -368,7 +368,7 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
     return {
       offerData: result.credentialOffer,
       txCode: result.issuanceSession.userPin,
-      sessionId: result.issuanceSession.id,
+      sessionId,
     };
   }
 
