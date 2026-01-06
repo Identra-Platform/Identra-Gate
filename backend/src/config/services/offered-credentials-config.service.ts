@@ -1,9 +1,10 @@
-import { ConfigService } from './config.service';
+import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { Injectable } from '@nestjs/common';
 import { OpenId4VciCredentialConfigurationsSupportedWithFormats, OpenId4VciCredentialConfigurationSupportedWithFormats } from '@credo-ts/openid4vc';
+import { AppConfigService } from './app-config.service';
+import { CredentialsConfigService } from './credentials-config.service';
 
 export interface FieldConfig {
   name: string;
@@ -39,7 +40,6 @@ export interface CredentialConfig {
 
 export interface IssuerConfig {
   name: string;
-  did?: string;
   logo?: string;
   description?: string;
   primaryColor: string;
@@ -63,6 +63,7 @@ export interface SettingsConfig {
 
 export interface CredentialConfiguration {
   id: string;
+  did?: string;
   version: string;
   lastUpdated: string;
   issuer: IssuerConfig;
@@ -71,19 +72,42 @@ export interface CredentialConfiguration {
 }
 
 @Injectable()
-export class CredentialConfigService {
+export class OfferedCredentialsConfigService {
   private config: CredentialConfiguration;
+  private configPath: string;
+  private autoReload: boolean;
+  private watchForChanges: boolean;
 
-  constructor(private readonly appConfig: ConfigService) {
+  constructor(
+    private readonly appConfig: AppConfigService,
+    private readonly credentialsConfig: CredentialsConfigService
+  ) {
+    this.configPath = credentialsConfig.get().configPath;
+    this.autoReload = credentialsConfig.get().autoReload;
+    this.watchForChanges = credentialsConfig.get().watchForChanges;
+    
     this.loadConfiguration();
+    this.setupFileWatcher();
+  }
+
+  private setupFileWatcher() {
+    if (this.watchForChanges) {
+      try {
+        fs.watch(this.configPath, (eventType) => {
+          if (eventType === 'change') {
+            console.log('Credential configuration file changed, reloading...');
+            this.loadConfiguration();
+          }
+        });
+      } catch (error) {
+        console.warn('Could not setup file watcher for credential config:', error.message);
+      }
+    }
   }
 
   private loadConfiguration() {
     try {
-      const configPath = path.resolve(
-        process.cwd(),
-        this.appConfig.credentialConfig?.path || './credentials.json',
-      );
+      const configPath = path.resolve(process.cwd(), this.configPath);
 
       if (fs.existsSync(configPath)) {
         const content = fs.readFileSync(configPath, 'utf8');
@@ -93,11 +117,14 @@ export class CredentialConfigService {
         } else {
           this.config = JSON.parse(content) as CredentialConfiguration;
         }
-      } else throw new Error('Could not find credential configuration file');
+      } else {
+        throw new Error(`Could not find credential configuration file at: ${configPath}`);
+      }
 
       this.validateConfiguration();
+      this.config.lastUpdated = new Date().toISOString();
     } catch (error) {
-      throw new Error('Could not load configuration: ' + error);
+      throw new Error(`Could not load credential configuration: ${error.message}`);
     }
   }
 
@@ -107,6 +134,10 @@ export class CredentialConfigService {
     if (!this.config.issuer) throw new Error('Missing issuer configuration');
     if (!this.config.credentials) throw new Error('Missing credentials configuration');
     if (!this.config.settings) throw new Error('Missing settings configuration');
+
+    if (!this.config.did && !this.appConfig.agent.autoCreateDid) {
+      throw new Error('System requires either DID or auto-create to be enabled');
+    }
 
     for (const credential of this.config.credentials) {
       if (!credential.id) throw new Error(`Credential missing id`);
@@ -121,10 +152,7 @@ export class CredentialConfigService {
 
   private async updateConfig() {
     try {
-      const configPath = path.resolve(
-        process.cwd(),
-        this.appConfig.credentialConfig?.path || './credentials.json',
-      );
+      const configPath = path.resolve(process.cwd(), this.configPath);
 
       this.config.lastUpdated = new Date().toISOString();
 
@@ -173,7 +201,7 @@ export class CredentialConfigService {
         }
       };
 
-      if (credential.fields && credential.fields.length > 0&& openIdConfig.credential_metadata) {
+      if (credential.fields && credential.fields.length > 0 && openIdConfig.credential_metadata) {
         openIdConfig.credential_metadata.claims  = credential.fields.map(field => ({
           path: Array.isArray(field.path) && field.path.length > 0 
             ? [field.path[0], ...field.path.slice(1)] 
@@ -201,16 +229,7 @@ export class CredentialConfigService {
       credentialConfigurationsSupported[credential.id] = openIdConfig;
     }
 
-    return credentialConfigurationsSupported
-  }
-
-  private mapFormat(format: string) {
-    switch (format) {
-      case 'sd-jwt': return 'dc+sd-jwt';
-      case 'jwt': return 'jwt_vc_json';
-      case 'json-ld': return 'ldp_vc';
-    }
-    throw new Error('Invalid credential format');
+    return credentialConfigurationsSupported;
   }
 
   getId(): string {
@@ -248,12 +267,16 @@ export class CredentialConfigService {
     );
   }
 
-  getIssuerDid(): string | undefined {
-    return this.getIssuerConfig().did;
+  getDid(): string | undefined {
+    return this.config.did;
   }
 
-  setIssuerDid(did: string) {
-    this.config.issuer.did = did;
-    this.updateConfig();
+  async setDid(did: string) {
+    this.config.did = did;
+    await this.updateConfig();
+  }
+
+  reload(): void {
+    this.loadConfiguration();
   }
 }

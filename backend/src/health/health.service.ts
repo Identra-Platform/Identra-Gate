@@ -8,11 +8,11 @@ import {
   ServiceStatus,
   SystemMetrics,
 } from './interfaces/health.interface';
-import { ConfigService } from 'src/config/config.service';
 import { DataSource } from 'typeorm';
 import path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { AppConfigService } from 'src/config/services/app-config.service';
 
 const execAsync = promisify(exec);
 
@@ -23,7 +23,7 @@ export class HealthService implements OnModuleInit {
   private serviceDependencies: Map<string, ServiceStatus> = new Map();
 
   constructor(
-    private configService: ConfigService,
+    private configService: AppConfigService,
     private dataSource: DataSource,
   ) {}
 
@@ -160,7 +160,7 @@ export class HealthService implements OnModuleInit {
     const startTime = Date.now();
 
     try {
-      const dataDir = path.dirname(this.configService.credentialConfig.path ?? './credentials.json');
+      const dataDir = path.dirname(this.configService.credentials.configPath ?? './credentials.json');
 
       if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
@@ -250,7 +250,7 @@ export class HealthService implements OnModuleInit {
     const startTime = Date.now();
 
     try {
-      const dataDir = path.dirname(this.configService.credentialConfig.path?? './credentials.json');
+      const dataDir = path.dirname(this.configService.credentials.configPath?? './credentials.json');
       const freeSpace = await this.getFreeDiskSpace(dataDir);
 
       const freeBytes = this.parseBytes(freeSpace);

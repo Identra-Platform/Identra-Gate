@@ -6,23 +6,21 @@ import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from '../database/datasource';
-import { LogsModule } from './audit/logs/logs.module';
-import { MetricsModule } from './audit/metrics/metrics.module';
-import { OpenId4VcModule } from './openid4vc/openid4vc.module';
 import { CredentialsModule } from './credentials/credentials.module';
 import { NetworkInfoModule } from './network-info/network-info.module';
+import { VerificationModule } from './verification/verification.module';
+import { CredoModule } from './credo/credo.module';
 
 @Module({
   imports: [
     ConfigModule,
     HealthModule,
     UsersModule,
-    LogsModule,
-    MetricsModule,
+    CredoModule,
     TypeOrmModule.forRoot(dataSourceOptions),
-    OpenId4VcModule,
     CredentialsModule,
     NetworkInfoModule,
+    VerificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

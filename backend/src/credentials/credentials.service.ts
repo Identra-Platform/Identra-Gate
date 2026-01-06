@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { CredentialConfigService } from 'src/config/credential-config.service';
 import { CreateCredentialOfferDto } from './dto/credential-offer.dto';
-import { OpenId4VcService } from 'src/openid4vc/openid4vc.service';
 import { Repository } from 'typeorm';
-import { IssuedCredential } from './entities/issued-credential.entity';
+import { IssuedCredential } from '../credo/entities/issued-credential.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { OpenId4VcService } from 'src/credo/openid4vc.service';
+import { OfferedCredentialsConfigService } from 'src/config/services/offered-credentials-config.service';
 
 @Injectable()
 export class CredentialsService {
   constructor(
     private readonly openId4VcService: OpenId4VcService,
-    private readonly credentialsConfigService: CredentialConfigService,
+    private readonly credentialsConfigService: OfferedCredentialsConfigService,
     @InjectRepository(IssuedCredential)
     private readonly issuedCredentialRepository: Repository<IssuedCredential>
   ) {}
