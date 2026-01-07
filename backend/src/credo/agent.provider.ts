@@ -7,7 +7,7 @@ import { HederaModule, HederaDidCreateOptions, HederaDidRegistrar, HederaDidReso
 import { askar } from '@openwallet-foundation/askar-nodejs';
 import { agentDependencies } from '@credo-ts/node';
 import { OpenId4VcIssuerRecord, OpenId4VcVerifierRecord } from '@credo-ts/openid4vc';
-import { IssuanceSessionData, SessionManagerService } from './session-manager.service';
+import { IssuanceSessionData, SessionManagerService, VerificationSessionData } from './session-manager.service';
 import { Repository } from 'typeorm';
 import { IssuedCredential } from './entities/issued-credential.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -16,6 +16,7 @@ import { AgentConfigService } from 'src/config/services/agent-config.service';
 import { DatabaseConfigService } from 'src/config/services/database-config.service';
 import { DidsConfigService } from 'src/config/services/dids-config.service';
 import { OfferedCredentialsConfigService } from 'src/config/services/offered-credentials-config.service';
+import { HttpAdapterHost } from '@nestjs/core';
 
 type AgentModules = {
   askar: AskarModule;
@@ -53,6 +54,7 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
     private readonly sessionManager: SessionManagerService,
     @InjectRepository(IssuedCredential)
     private readonly issuedCredentialRepository: Repository<IssuedCredential>,
+    private readonly httpAdapter: HttpAdapterHost
   ) {}
 
   async onModuleInit() {
@@ -97,7 +99,7 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
     
     // DEBUG: Clean slate for development
     if (process.env.NODE_ENV === 'development') {
-      await this.resetAgentStorage(agent);
+      //await this.resetAgentStorage(agent);
     }
 
     const credentials = await this.initializeAgentActors(agent, config);
@@ -143,6 +145,7 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
         resolvers: [new HederaDidResolver()],
       }),
       openid4vc: new OpenId4VcModule({
+        app: this.httpAdapter.httpAdapter.getInstance(),
         ...openId4VcConfig,
         issuer: config.issuer.enabled ? {
           ...openId4VcConfig.issuer,
@@ -320,8 +323,6 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
     const agent = await this.getAgent();
     const didsConfig = this.didsConfig.get();
 
-    console.log(didsConfig);
-
     const result = await agent.dids.create<HederaDidCreateOptions>({
       method: didsConfig.defaultMethod as 'hedera',
       options: {
@@ -478,8 +479,13 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
 
     return {
       requestData: request.authorizationRequest,
-      sessionId
+      requestId: request.verificationSession.id
     };
+  }
+
+  async getVerificationResponse(sessionId: string) {
+    const verifiedResponse = await this.agentCredentials?.agent.openid4vc.verifier?.getVerifiedAuthorizationResponse(sessionId);
+    return verifiedResponse;
   }
 
   async shutdown(): Promise<void> {

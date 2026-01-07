@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { VerificationService } from './verification.service';
 import { CreateAuthorizationRequestDto } from './dto/verification-request.dto';
 
@@ -11,5 +11,10 @@ export class VerificationController {
   @Post()
   createRequest(@Body() createAuthorizationRequestDto: CreateAuthorizationRequestDto) {
     return this.verificationService.authorize(createAuthorizationRequestDto);
+  }
+
+  @Get('/:id')
+  getVerificationResponse(@Param('id') id: string) {
+    return this.verificationService.getVerificationRequest(id);
   }
 }

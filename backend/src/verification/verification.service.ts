@@ -12,7 +12,12 @@ export class VerificationService {
 
   async authorize(createAuthorizationRequestDto: CreateAuthorizationRequestDto) {
     const dcqlQuery = this.convertToDcql(createAuthorizationRequestDto);
+    console.log(JSON.stringify(dcqlQuery));
     return this.openId4VcService.createAuthorizationRequest(dcqlQuery);
+  }
+
+  async getVerificationRequest(id: string) {
+    return this.openId4VcService.getVerificationResponse(id);
   }
 
   private convertToDcql(dto: CreateAuthorizationRequestDto): DcqlQuery {
@@ -21,9 +26,13 @@ export class VerificationService {
 
       const claims = credRequest.fields
         .map(field => {
-          const pathArray = field.path.includes(".")
+          let pathArray = field.path.includes(".")
             ? field.path.split('.')
             : [field.path];
+          pathArray = [
+            'fields',
+            ...pathArray
+          ];
 
           const claim = {
             path: pathArray

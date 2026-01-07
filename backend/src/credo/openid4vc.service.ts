@@ -52,6 +52,10 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
     return this.agentProvider.createAuthorizationRequest(dcql);
   }
 
+  async getVerificationResponse(sessionId: string) {
+    return this.agentProvider.getVerificationResponse(sessionId);
+  }
+
   getAgent() {
     return this.agentProvider.getAgent();
   }
