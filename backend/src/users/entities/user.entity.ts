@@ -2,13 +2,16 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinTable,
-  ManyToMany,
-  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Role } from './role.entity';
+import { Exclude } from 'class-transformer';
+
+export enum UserRole {
+  Admin = 'admin',
+  Verifier = 'verifier',
+  Issuer = 'issuer'
+}
 
 @Entity()
 export class User {
@@ -21,11 +24,14 @@ export class User {
   @Column()
   name: string;
 
-  @ManyToMany(() => Role, (userRole) => userRole.users)
-  @JoinTable()
-  roles: Role[];
+  @Column({
+    type: 'enum',
+    enum: UserRole
+  })
+  roles: UserRole[];
 
   @Column({ select: false })
+  @Exclude()
   password: string;
 
   @CreateDateColumn()

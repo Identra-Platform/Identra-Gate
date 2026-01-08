@@ -10,7 +10,6 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Equal, In, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Role, UserRole } from './entities/role.entity';
 import * as bcrypt from 'bcrypt';
 import { hash } from 'crypto';
 
@@ -18,9 +17,7 @@ import { hash } from 'crypto';
 export class UsersService {
   constructor(
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(Role)
-    private readonly roleRepository: Repository<Role>,
+    private readonly userRepository: Repository<User>
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -32,24 +29,10 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
-    let roles: Role[] = await this.roleRepository.find({
-      where: { role: In(createUserDto.roles) },
-    });
-
-    if (roles.length !== createUserDto.roles.length) {
-      const foundRoles = roles.map((role) => role.role);
-      const missingRoles = createUserDto.roles.filter(
-        (role) => !foundRoles.includes(role),
-      );
-      throw new NotFoundException(
-        `Roles not found: ${missingRoles.join(', ')} ${roles.map((role) => role.role)}`,
-      );
-    }
-
     const user = this.userRepository.create({
       ...createUserDto,
       password: hashedPassword,
-      roles,
+      roles: createUserDto.roles,
     });
 
     return await this.userRepository.save(user);
