@@ -5,9 +5,12 @@ import { ConfigModule } from 'src/config/config.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IssuedCredential } from '../credo/entities/issued-credential.entity';
 import { CredoModule } from 'src/credo/credo.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [CredoModule, ConfigModule, TypeOrmModule.forFeature([IssuedCredential])],
+  imports: [CredoModule, ConfigModule, TypeOrmModule.forFeature([IssuedCredential]),
+    AuthModule
+  ],
   providers: [CredentialsService],
   controllers: [CredentialsController]
 })

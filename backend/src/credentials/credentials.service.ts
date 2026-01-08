@@ -56,7 +56,7 @@ export class CredentialsService {
   }
 
   async createCredentialOffer(createCredentialOfferDto: CreateCredentialOfferDto) {
-    const { credentialId, claims, holderDid, pinRequired, pinLength } = createCredentialOfferDto;
+    const { credentialId, claims, holderDid } = createCredentialOfferDto;
     const credential = this.credentialsConfigService.getCredentialById(credentialId);
     if (!credential) {
       throw new Error(`Credential ${credentialId} not found`);
@@ -67,8 +67,7 @@ export class CredentialsService {
     const offer = await this.openId4VcService.createCredentialOfferWithClaims(
       credentialId,
       claims,
-      holderDid,
-      { pinRequired, pinLength }
+      holderDid
     );
 
     const issuedCredential = this.issuedCredentialRepository.create({

@@ -40,7 +40,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '1h' });
     const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: dto.rememberMe ? '30d' : '7d',
+      expiresIn: '7d',
     });
 
     await this.dataSource.query(
