@@ -1,89 +1,129 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { User } from 'src/users/entities/user.entity';
+import { MoreThan, Repository } from 'typeorm';
+import { LoginAttempt } from './entities/login-attempt.entity';
 import { JwtService } from '@nestjs/jwt';
+import { AppConfigService } from 'src/config/services/app-config.service';
 import * as bcrypt from 'bcrypt';
-import { DataSource } from 'typeorm';
-import { LoginResult, RefreshResult } from './interfaces/auth.interface';
-import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { access } from 'fs';
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(LoginAttempt)
+    private readonly loginAttemptRepository: Repository<LoginAttempt>,
     private readonly jwtService: JwtService,
-    private readonly dataSource: DataSource,
+    private readonly configService: AppConfigService
   ) {}
 
-  async login(dto: LoginDto): Promise<LoginResult> {
-    const users = await this.dataSource.query(
-      `SELECT * FROM users WHERE email = ? AND is_active = 1 LIMIT 1`,
-      [dto.email],
-    );
+  async validateUser(username: string, password: string, ipAddress: string, userAgent: string) {
+    await this.checkLoginAttempts(username, ipAddress);
 
-    if (!users.length) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const user = users[0];
-    const passwordVaild = await bcrypt.compare(dto.password, user.password);
-
-    if (!passwordVaild) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
-
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '1h' });
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: '7d',
+    const user = await this.userRepository.findOne({
+      where: { name: username }
     });
 
-    await this.dataSource.query(
-      `UPDATE users SET last_login = NOW() WHERE id = ?`,
-      [user.id],
-    );
+    if (!user) {
+      await this.recordLoginAttempt(null, username, ipAddress,userAgent, false, 'User not found');
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
-    this.logger.log(`User ${user.email} logged in`);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      await this.recordLoginAttempt(user, username, ipAddress, userAgent, false, 'Invalid password');
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    await this.clearFailedAttempts(user, ipAddress);
+    await this.recordLoginAttempt(user, username, ipAddress, userAgent, true);
+
+    const { password: _, ...result } = user;
+    return result;
+  }
+
+  async login(user: any, ipAddress: string, userAgent: string) {
+    const payload = {
+      username: user.name,
+      sub: user.id,
+      roles: user.roles,
+      email: user.email
+    };
+
+    await this.userRepository.update(user.id, { lastLoginAt: new Date() });
 
     return {
-      accessToken,
-      refreshToken,
-      expiresIn: 3600,
+      access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
+        username: user.name,
         email: user.email,
-        name: user.name,
-        role: user.role,
-      },
+        roles: user.roles
+      }
     };
   }
 
-  async refresh(dto: RefreshTokenDto): Promise<RefreshResult> {
-    try {
-      const payload = this.jwtService.verify(dto.refreshToken);
+  private async checkLoginAttempts(username: string, ipAddress: string) {
+    const lockoutTime = new Date(Date.now() - this.configService.auth.password.lockoutDuration);
 
-      const newPayLoad = {
-        sub: payload.sub,
-        email: payload.email,
-        role: payload.role,
-      };
+    const userAttempts = await this.loginAttemptRepository.count({
+      where: {
+        user: { name: username },
+        success: false,
+        createdAt: MoreThan(lockoutTime)
+      }
+    });
 
-      return {
-        accessToken: this.jwtService.sign(newPayLoad, { expiresIn: '1h' }),
-        refreshToken: this.jwtService.sign(newPayLoad, { expiresIn: '7d' }),
-        expiresIn: 3600,
-      };
-    } catch (e) {
-      throw new UnauthorizedException('Invalid refresh token');
+    const ipAttempts = await this.loginAttemptRepository.count({
+      where: {
+        ipAddress,
+        success: false,
+        createdAt: MoreThan(lockoutTime)
+      }
+    });
+
+    const maxAttempts = this.configService.auth.password.maxAttempts;
+    if (userAttempts >= maxAttempts || ipAttempts >= maxAttempts) {
+      throw new ForbiddenException('Too many login attempts. Please try again later.');
     }
   }
 
-  async logout() {
-    return { success: true, message: 'Logged out successfully' };
+  private async recordLoginAttempt(user: User | null, username: string, ipAddress: string, userAgent: string, success: boolean, failureReason?: string) {
+    const loginAttempt = this.loginAttemptRepository.create({
+      user: user ?? undefined,
+      ipAddress,
+      userAgent,
+      success,
+      failureReason
+    });
+
+    await this.loginAttemptRepository.save(loginAttempt);
+  }
+
+  private async clearFailedAttempts(user: User, ipAddress: string) {
+    const loginAttempts = await this.loginAttemptRepository.find({
+      where: {
+        user, ipAddress,
+        success: false
+      }
+    });
+    await this.loginAttemptRepository.remove(loginAttempts);
+  }
+
+  async validateToken(token: string) {
+    try {
+      const payload = this.jwtService.verify(token);
+      const user = await this.userRepository.findOne({
+        where: { id: payload.sub }
+      });
+
+      if (!user) return null;
+
+      return user;
+    } catch {
+      return null;
+    }
   }
 }

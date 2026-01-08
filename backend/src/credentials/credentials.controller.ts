@@ -2,7 +2,6 @@ import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { CredentialsService } from './credentials.service';
 import { CreateCredentialOfferDto } from './dto/credential-offer.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/guards/auth.guard';
 
 @ApiTags('Credentials')
 @Controller('credentials')
@@ -12,7 +11,6 @@ export class CredentialsController {
   ) {}
 
   @Post()
-  @UseGuards(AuthGuard)
   @ApiOperation({ 
     summary: 'Create credential offer', 
     description: 'Create a verifiable credential offer for a holder' 

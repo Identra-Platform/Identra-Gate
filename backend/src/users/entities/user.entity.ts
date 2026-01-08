@@ -2,10 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
+import { LoginAttempt } from 'src/auth/entities/login-attempt.entity';
 
 export enum UserRole {
   Admin = 'admin',
@@ -26,13 +28,20 @@ export class User {
 
   @Column({
     type: 'enum',
-    enum: UserRole
+    enum: UserRole,
+    default: [UserRole.Verifier]
   })
   roles: UserRole[];
 
   @Column({ select: false })
   @Exclude()
   password: string;
+
+  @OneToMany(() => LoginAttempt, loginAttempt => loginAttempt.user)
+  loginAttempts: LoginAttempt[];
+
+  @Column({ nullable: true })
+  lastLoginAt?: Date;
 
   @CreateDateColumn()
   createdAt: Date;

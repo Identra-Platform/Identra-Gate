@@ -2,7 +2,6 @@ import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { VerificationService } from './verification.service';
 import { CreateAuthorizationRequestDto } from './dto/verification-request.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/guards/auth.guard';
 
 @ApiTags('Verification')
 @Controller('verification')
@@ -12,7 +11,6 @@ export class VerificationController {
   ) {}
 
   @Post()
-  @UseGuards(AuthGuard)
   @ApiOperation({ 
     summary: 'Create verification request', 
     description: 'Create an authorization request for credential verification' 
@@ -59,7 +57,6 @@ export class VerificationController {
   }
 
   @Get('/:id')
-  @UseGuards(AuthGuard)
   @ApiOperation({ 
     summary: 'Get verification request', 
     description: 'Retrieve verification request details by ID' 

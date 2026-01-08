@@ -1,5 +1,4 @@
 import { runSeeders, SeederOptions } from 'typeorm-extension';
-import { Role } from '../src/users/entities/role.entity';
 import { User } from '../src/users/entities/user.entity';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { IssuedCredential } from 'src/credo/entities/issued-credential.entity';
@@ -14,6 +13,7 @@ import { AgentConfigService } from 'src/config/services/agent-config.service';
 import { OpenId4VcConfigService } from 'src/config/services/openid4vc-config.service';
 import { CredentialsConfigService } from 'src/config/services/credentials-config.service';
 import { EnvService } from 'src/config/services/env.service';
+import { LoginAttempt } from 'src/auth/entities/login-attempt.entity';
 
 const envService = new EnvService();
 const configService = new AppConfigService(
@@ -35,7 +35,7 @@ export const dataSourceOptions: DataSourceOptions = {
   username: configService.database.username,
   password: configService.database.password,
   database: configService.database.database,
-  entities: [User, Role, IssuedCredential],
+  entities: [User, IssuedCredential,LoginAttempt],
   migrations: ['./migration/**/*{.js,.ts}'],
   synchronize: true,
 };

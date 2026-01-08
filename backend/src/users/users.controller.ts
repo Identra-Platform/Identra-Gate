@@ -15,7 +15,6 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
-import { AuthGuard } from '../auth/guards/auth.guard';
 
 @ApiTags('Users')
 @Controller('users')
@@ -23,7 +22,6 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ 
     summary: 'Create new user', 
@@ -53,7 +51,6 @@ export class UsersController {
   }
 
   @Get()
-  @UseGuards(AuthGuard)
   @ApiOperation({ 
     summary: 'Get all users', 
     description: 'Retrieve paginated list of users with optional filtering' 
@@ -98,7 +95,6 @@ export class UsersController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get user by ID', description: 'Retrieve a specific user by their ID' })
   @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'User ID', example: '123' })
@@ -123,7 +119,6 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'Update user', description: 'Update user information' })
   @ApiBearerAuth()
@@ -151,7 +146,6 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Delete user', description: 'Delete a user by ID' })
   @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'User ID', example: '123' })

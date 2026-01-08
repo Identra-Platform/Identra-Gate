@@ -1,88 +1,90 @@
-import { Controller, Post, Body, UseGuards, Get, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { AuthGuard } from './guards/auth.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import type { Request } from 'express';
+import { ApiBearerAuth, ApiBody, ApiForbiddenResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 
-@ApiTags('Authentication')
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService
+  ) {}
 
-  @Post('login')
-  @ApiOperation({ summary: 'User login', description: 'Authenticate user and return access tokens' })
-  @ApiBody({ type: LoginDto })
+  @ApiOperation({ summary: 'User login' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        username: { type: 'string', example: 'john_doe' },
+        password: { type: 'string', example: 'password123' }
+      }
+    }
+  })
   @ApiResponse({ 
     status: 200, 
     description: 'Login successful',
     schema: {
-      example: {
-        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      type: 'object',
+      properties: {
+        access_token: { type: 'string' },
         user: {
-          id: '123',
-          email: 'user@example.com',
-          name: 'John Doe',
-          roles: ['USER']
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+            username: { type: 'string' },
+            email: { type: 'string' },
+            roles: { type: 'array', items: { type: 'string' } }
+          }
         }
       }
     }
   })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  @ApiResponse({ status: 400, description: 'Validation error' })
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+  @ApiForbiddenResponse({ description: 'Too many login attempts' })
+  @UseGuards(AuthGuard('local'))
+  @Post('login')
+  async login(
+    @Body() loginDto: { username: string, password: string },
+    @Req() req: Request
+  ) {
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'] || '';
+
+    return this.authService.login(req.user, ipAddress!, userAgent);
   }
 
-  @Post('refresh')
-  @ApiOperation({ summary: 'Refresh access token', description: 'Get new access token using refresh token' })
-  @ApiBody({ type: RefreshTokenDto })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Token refresh successful',
-    schema: {
-      example: {
-        accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-      }
-    }
-  })
-  @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  @ApiResponse({ status: 400, description: 'Validation error' })
-  refresh(@Body() dto: RefreshTokenDto) {
-    return this.authService.refresh(dto);
-  }
-
-  @Post('logout')
-  @ApiOperation({ summary: 'User logout', description: 'Invalidate user session' })
-  @ApiBearerAuth()
-  @ApiResponse({ status: 200, description: 'Logout successful' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  logout() {
-    return this.authService.logout();
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('me')
-  @ApiOperation({ summary: 'Get current user', description: 'Get authenticated user information' })
+  @ApiOperation({ summary: 'Get user profile' })
   @ApiBearerAuth()
   @ApiResponse({ 
     status: 200, 
-    description: 'User information retrieved',
-    schema: {
-      example: {
-        id: '123',
-        email: 'user@example.com',
-        name: 'John Doe',
-        roles: ['USER'],
-        createdAt: '2024-01-15T10:30:00Z',
-        updatedAt: '2024-01-15T10:30:00Z'
-      }
-    }
+    description: 'Returns user profile',
+    type: Object
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  me(@Req() req) {
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'))
+  @Get('profile')
+  getProfile(@Req() req: Request) {
     return req.user;
+  }
+
+  @ApiOperation({ summary: 'User logout' })
+  @ApiBearerAuth()
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Logout successful',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Logged out successfully' }
+      }
+    }
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @UseGuards(AuthGuard('jwt'))
+  @Post('logout')
+  async logout() {
+    return { message: 'Logged out successfully' };
   }
 }
