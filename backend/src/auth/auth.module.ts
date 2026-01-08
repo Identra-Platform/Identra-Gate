@@ -8,13 +8,14 @@ import { ConfigModule } from 'src/config/config.module';
 import { AuthConfigService } from 'src/config/services/auth-config.service';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { LoginAttempt } from './entities/login-attempt.entity';
 
 @Module({
   imports: [
     ConfigModule,
     UsersModule,
     PassportModule,
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, LoginAttempt]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [AuthConfigService],

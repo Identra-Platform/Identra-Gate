@@ -1,4 +1,4 @@
-import { User, UserRole } from "src/users/entities/user.entity";
+import { User, UserRole } from "../../src/users/entities/user.entity";
 import { DataSource } from "typeorm";
 import { Seeder, SeederFactoryManager } from "typeorm-extension";
 

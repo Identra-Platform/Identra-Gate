@@ -7,7 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
-import { LoginAttempt } from 'src/auth/entities/login-attempt.entity';
+import { LoginAttempt } from '../../auth/entities/login-attempt.entity';
 
 export enum UserRole {
   Admin = 'admin',

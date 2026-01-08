@@ -85,7 +85,7 @@ export interface AuthConfig {
 
 @Injectable()
 export class AuthConfigService extends BaseConfigService<AuthConfig> {
-  protected readonly prefix = 'AUTH_';
+  protected readonly prefix = '';
   protected readonly schema = Joi.object({
     // JWT Configuration
     JWT_SECRET: Joi.string().min(32).required(),
