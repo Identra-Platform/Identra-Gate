@@ -1,29 +1,24 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import { auth } from "$lib/stores/auth";
-	import { setup } from "$lib/stores/setup";
-	import Alert from "../ui/Alert.svelte";
-	import Button from "../ui/Button.svelte";
-	import Card from "../ui/Card.svelte";
-	import Input from "../ui/Input.svelte";
-	import Loading from "../ui/Loading.svelte";
-
-  interface Props {
-    redirectTo?: string;
-  }
-  let {
-    redirectTo = '/'
-  }: Props = $props();
-
-  let email = $state('');
-  let password = $state('');
-  let error = $state('');
-
-  const handleSubmit = async (e?: Event) => {
-    e?.preventDefault();
-
-    if (!email.trim()) {
-      error = 'Email is required';
+  import Card from '$lib/components/ui/Card.svelte';
+  import Button from '$lib/components/ui/Button.svelte';
+  import Input from '$lib/components/ui/Input.svelte';
+  import Alert from '$lib/components/ui/Alert.svelte';
+  import { auth } from '$lib/stores/auth';
+  import { goto } from '$app/navigation';
+	import Loading from '../ui/Loading.svelte';
+  
+  export let redirectTo = '/';
+  
+  let username = '';
+  let password = '';
+  let loading = false;
+  let error = '';
+  
+  const handleSubmit = async () => {
+    if (loading) return;
+    
+    if (!username.trim()) {
+      error = 'Username is required';
       return;
     }
     
@@ -31,14 +26,20 @@
       error = 'Password is required';
       return;
     }
-
+    
+    loading = true;
+    error = '';
+    
     try {
-      await auth.login(email, password);
+      await auth.login(username, password);
       goto(redirectTo);
     } catch (err: any) {
       error = err.message || 'Login failed. Please check your credentials.';
+    } finally {
+      loading = false;
     }
   };
+  
   const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSubmit();
@@ -53,9 +54,9 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
       </svg>
     </div>
-    <h2 class="text-2xl font-bold text-on-surface">Welcome Back</h2>
+    <h2 class="text-2xl font-bold text-on-surface">Identra-Gate</h2>
     <p class="mt-2 text-sm text-on-surface-variant">
-      Sign in to your account
+      Secure Identity Verification Platform
     </p>
   </div>
   
@@ -65,51 +66,45 @@
     </Alert>
   {/if}
   
-  <form onsubmit={handleSubmit} class="space-y-5">
+  <form on:submit|preventDefault={handleSubmit} class="space-y-5">
     <Input
-      label="Email Address"
-      type="email"
-      bind:value={email}
-      placeholder="you@example.com"
+      label="Username"
+      type="text"
+      bind:value={username}
+      placeholder="Enter your username"
       required
-      disabled={$auth.loading}
+      onkeypress={handleKeyPress}
+      disabled={loading}
     />
     
     <Input
       label="Password"
       type="password"
       bind:value={password}
-      placeholder="••••••••"
+      placeholder="Enter your password"
       required
-      disabled={$auth.loading}
+      onkeypress={handleKeyPress}
+      disabled={loading}
     />
     
     <Button
       type="submit"
       variant="filled"
       size="large"
-      loading={$auth.loading}
+      {loading}
       fullWidth
       class="mt-2"
     >
-      {#if $auth.loading}
+      {#if loading}
         <Loading />
       {/if}
       Sign In
     </Button>
   </form>
   
-  {#if $setup.status?.requiredSetup}
-    <div class="mt-8 border-t border-outline-variant pt-6">
-      <p class="text-center text-sm text-on-surface-variant">
-        Need to set up the server first
-        <a
-          href="/setup/initialize"
-          class="font-medium text-primary hover:text-primary/80"
-        >
-          Begin setup
-        </a>
-      </p>
-    </div>
-  {/if}
+  <div class="mt-8 border-t border-outline-variant pt-6">
+    <p class="text-center text-sm text-on-surface-variant">
+      Version 1.0.0 • Secure Identity Management
+    </p>
+  </div>
 </Card>

@@ -63,7 +63,6 @@ export class AuthController {
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @UseGuards(AuthGuard('jwt'))
-  @UseGuards(AuthGuard('jwt'))
   @Get('profile')
   getProfile(@Req() req: Request) {
     return req.user;

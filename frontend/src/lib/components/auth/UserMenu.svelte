@@ -1,25 +1,34 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import { auth } from "$lib/stores/auth";
-	import { onMount } from "svelte";
-	import Button from "../ui/Button.svelte";
-	import { slide } from "svelte/transition";
-
-  let menuOpen = $state(false);
+  import { auth } from '$lib/stores/auth';
+  import Button from '$lib/components/ui/Button.svelte';
+  import { goto } from '$app/navigation';
+  
+  let menuOpen = false;
   let menuRef: HTMLElement;
   
   const toggleMenu = () => {
     menuOpen = !menuOpen;
   };
+  
   const closeMenu = () => {
     menuOpen = false;
   };
+  
   const handleLogout = async () => {
     closeMenu();
     await auth.logout();
     goto('/login');
   };
-
+  
+  const handleProfile = () => {
+    closeMenu();
+    goto('/profile');
+  };
+  
+  // Close menu when clicking outside
+  import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
+  
   onMount(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef && !menuRef.contains(event.target as Node)) {
@@ -41,13 +50,13 @@
     variant="text"
     size="small"
     onclick={toggleMenu}
-    class="rounded-full"
+    class="rounded-full h-full"
   >
     <div class="flex items-center gap-3">
       <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary-container text-on-primary-container">
-        {#if $auth.user?.name}
+        {#if $auth.user?.username}
           <span class="font-medium">
-            {$auth.user.name.charAt(0).toUpperCase()}
+            {$auth.user.username.charAt(0).toUpperCase()}
           </span>
         {:else}
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,10 +66,18 @@
       </div>
       <div class="hidden text-left md:block">
         <div class="text-sm font-medium text-on-surface">
-          {$auth.user?.name || 'User'}
+          {$auth.user?.username || 'User'}
         </div>
         <div class="text-xs text-on-surface-variant">
-          {$auth.user?.roles.find(role => role === 'admin') ? 'Administrator' : 'User'}
+          {#if auth.isAdmin()}
+            Administrator
+          {:else if auth.hasRole('verifier')}
+            Verifier
+          {:else if auth.hasRole('issuer')}
+            Issuer
+          {:else}
+            User
+          {/if}
         </div>
       </div>
       <svg
@@ -85,9 +102,9 @@
       <div class="border-b border-outline-variant p-4">
         <div class="flex items-center gap-3">
           <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-on-primary">
-            {#if $auth.user?.name}
+            {#if $auth.user?.username}
               <span class="text-lg font-bold">
-                {$auth.user.name.charAt(0).toUpperCase()}
+                {$auth.user.username.charAt(0).toUpperCase()}
               </span>
             {:else}
               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,25 +114,17 @@
           </div>
           <div>
             <div class="font-semibold text-on-surface">
-              {$auth.user?.name || 'User'}
+              {$auth.user?.username || 'User'}
             </div>
             <div class="text-sm text-on-surface-variant">
               {$auth.user?.email}
             </div>
-            <div class="mt-1">
-              <span class="inline-flex items-center rounded-full bg-secondary-container px-2 py-1 text-xs font-medium text-on-secondary-container">
-                {#if $auth.user?.roles.find(role => role === 'admin')}
-                  <svg class="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  Administrator
-                {:else}
-                  <svg class="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  User
-                {/if}
-              </span>
+            <div class="mt-1 flex flex-wrap gap-1">
+              {#each $auth.user?.roles || [] as role}
+                <span class="inline-flex items-center rounded-full bg-secondary-container px-2 py-1 text-xs font-medium text-on-secondary-container">
+                  {role}
+                </span>
+              {/each}
             </div>
           </div>
         </div>
@@ -123,10 +132,20 @@
       
       <!-- Menu Items -->
       <div class="py-2">
-        {#if $auth.user?.roles.find(role => role === 'admin')}
+        <button
+          on:click={handleProfile}
+          class="flex w-full items-center gap-3 px-4 py-3 text-left text-on-surface transition-colors hover:bg-surface-container-high"
+        >
+          <svg class="h-5 w-5 text-on-surface-variant" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <span>My Profile</span>
+        </button>
+        
+        {#if auth.isAdmin()}
           <a
             href="/admin"
-            onclick={closeMenu}
+            on:click={closeMenu}
             class="flex w-full items-center gap-3 px-4 py-3 text-left text-on-surface transition-colors hover:bg-surface-container-high"
           >
             <svg class="h-5 w-5 text-on-surface-variant" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -135,12 +154,25 @@
             <span>Admin Dashboard</span>
           </a>
         {/if}
+        
+        {#if auth.hasRole('verifier')}
+          <a
+            href="/verification"
+            on:click={closeMenu}
+            class="flex w-full items-center gap-3 px-4 py-3 text-left text-on-surface transition-colors hover:bg-surface-container-high"
+          >
+            <svg class="h-5 w-5 text-on-surface-variant" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span>Verification</span>
+          </a>
+        {/if}
       </div>
       
       <!-- Logout -->
       <div class="border-t border-outline-variant p-2">
         <button
-          onclick={handleLogout}
+          on:click={handleLogout}
           class="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-error transition-colors hover:bg-error-container hover:text-on-error-container"
         >
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,97 +1,210 @@
-import type { LoginResponse } from "$lib/types/api";
-import type { User } from "$lib/types/inferred";
-import { login, logout, refreshToken } from "$lib/utils/api";
+import { browser } from "$app/environment";
+import type { LoginResponse, ProfileResponse, User } from "$lib/types/api";
+import { getProfile, login, logout } from "$lib/utils/api";
 import { writable } from "svelte/store";
 
+export interface AuthState {
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    roles: string[];
+    name?: string;
+  } | null;
+  accessToken: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  lastLogin?: string;
+}
+
+const defaultAuthState: AuthState = {
+  user: null,
+  accessToken: null,
+  isAuthenticated: false,
+  isLoading: false
+};
+
+const initializeAuth = (): AuthState => {
+  if (!browser) return defaultAuthState;
+
+  try {
+    const storedAuth = localStorage.getItem('auth');
+    if (storedAuth) {
+      const parsed = JSON.parse(storedAuth);
+      if (parsed.accessToken && parsed.user) {
+        if (parsed.expiresAt && Date.now() < parsed.expiresAt) {
+          return {
+            ...parsed,
+            isLoading: false
+          };
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to parse stored auth: ', error);
+  }
+
+  return defaultAuthState;
+}
+
 function createAuthStore() {
-  const { subscribe, set, update } = writable<{
-    user: User | null;
-    accessToken: string | null;
-    refreshToken: string | null;
-    expiresIn: number | null;
-    isAuthenticated: boolean;
-    loading: boolean;
-  }>({
-    user: null,
-    accessToken: null,
-    refreshToken: null,
-    expiresIn: null,
-    isAuthenticated: false,
-    loading: false
-  });
+  const { subscribe, set, update } = writable<AuthState>(initializeAuth());
+
+  const saveToStorage = (state: AuthState, expiresIn = 3600) => {
+    if (!browser) return;
+    const expiresAt = Date.now() + (expiresIn * 1000);
+    localStorage.setItem('auth', JSON.stringify({
+      user: state.user,
+      accessToken: state.accessToken,
+      isAuthenticated: state.isAuthenticated,
+      expiresAt
+    }));
+  };
+
+  const clearStorage = () => {
+    if (!browser) return;
+    localStorage.removeItem('auth');
+  }
 
   return {
     subscribe,
-    login: async (email: string, password: string): Promise<LoginResponse> => {
-      update(state => ({ ...state, loading: true }));
+    login: async (username: string, password: string): Promise<LoginResponse> => {
+      update(state => ({ ...state, isLoading: true }));
 
       try {
-        const data = await login({ email, password });
-        set({
-          user: data.user,
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
-          expiresIn: Date.now() + (data.expiresIn * 1000),
+        const response = await login({ username, password });
+
+        const authState: AuthState = {
+          user: response.user,
+          accessToken: response.access_token,
           isAuthenticated: true,
-          loading: false
-        });
+          isLoading: false,
+          lastLogin: new Date().toISOString()
+        };
 
-        return data;
+        set(authState);
+        saveToStorage(authState, 3600);
+
+        return response;
       } catch (error) {
-        update(state => ({ ...state, loading: false }));
-        throw error;
-      }
-    },
-    refreshToken: async () => {
-      update(state => ({ ...state, loading: true }));
-
-      let currentRefreshToken: string | null = null;
-      const unsubscribe = subscribe(state => currentRefreshToken = state.refreshToken);
-      unsubscribe();
-
-      try {
-        if (!currentRefreshToken)
-          throw new Error('Not Authenticated');
-
-        const data = await refreshToken({
-          refreshToken: currentRefreshToken
-        });
-
-        update(state => ({
-          ...state,
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
-          expiresIn: Date.now() + (data.expiresIn * 1000),
-          loading: false
-        }));
-
-        return data;
-      } catch (error) {
-        update(state => ({ ...state, loading: false }));
+        update(state => ({ ...state, isLoading: false }));
         throw error;
       }
     },
     logout: async () => {
-      update(state => ({ ...state, loading: true }));
-
       try {
-        const data = await logout();
-
-        if (!data.success)
-          throw new Error('Could not logout: ' + data.message);
-
-        set({
-          user: null,
-          accessToken: null,
-          refreshToken: null,
-          expiresIn: null,
-          isAuthenticated: false,
-          loading: false
-        });
+        const state = initializeAuth();
+        if (state.accessToken) {
+          await logout();
+        }
       } catch (error) {
-        update(state => ({ ...state, loading: false }));
+        console.error('Logout API error:', error);
+      } finally {
+        const newState: AuthState = { 
+          user: null, 
+          accessToken: null, 
+          isAuthenticated: false, 
+          isLoading: false 
+        };
+        set(newState);
+        clearStorage();
+      }
+    },
+    getProfile: async (): Promise<ProfileResponse> => {
+      update(state => ({ ...state, isLoading: true }));
+      
+      try {
+        const profile = await getProfile();
+        
+        update(state => ({
+          ...state,
+          user: {
+            ...state.user,
+            ...profile
+          },
+          isLoading: false
+        }));
+        
+        // Update storage with new profile data
+        const currentState = initializeAuth();
+        if (currentState.accessToken) {
+          saveToStorage({
+            ...currentState,
+            user: {
+              ...currentState.user,
+              ...profile
+            }
+          });
+        }
+        
+        return profile;
+      } catch (error) {
+        update(state => ({ ...state, isLoading: false }));
         throw error;
       }
+    },
+    refreshToken: async () => {
+      const state = initializeAuth();
+      if (!state.accessToken) {
+        throw new Error('No access token available');
+      }
+      
+      update(s => ({ ...s, isLoading: true }));
+      
+      try {
+        const newExpiresAt = Date.now() + (3600 * 1000);
+        saveToStorage(state, 3600);
+        
+        update(s => ({ ...s, isLoading: false }));
+      } catch (error) {
+        const failedState: AuthState = defaultAuthState;
+        set(failedState);
+        clearStorage();
+        throw error;
+      }
+    },
+    isTokenExpired: (): boolean => {
+      if (!browser) return true;
+      
+      try {
+        const storedAuth = localStorage.getItem('auth');
+        if (storedAuth) {
+          const parsed = JSON.parse(storedAuth);
+          return !parsed.expiresAt || Date.now() >= parsed.expiresAt;
+        }
+      } catch (error) {
+        console.error('Failed to check token expiration:', error);
+      }
+      
+      return true;
+    },
+    hasRole: (role: string): boolean => {
+      const state = initializeAuth();
+      return state.user?.roles.includes(role) || false;
+    },
+    
+    hasAnyRole: (roles: string[]): boolean => {
+      const state = initializeAuth();
+      return roles.some(role => state.user?.roles.includes(role)) || false;
+    },
+    
+    isAdmin: (): boolean => {
+      return auth.hasRole('admin');
+    },
+    updateUser: (userData: Partial<User>) => {
+      update(state => {
+        if (!state.user) return state;
+        
+        const updatedUser = { ...state.user, ...userData };
+        const newState = { ...state, user: updatedUser };
+        
+        saveToStorage(newState);
+        return newState;
+      });
+    },
+    clear: () => {
+      set(defaultAuthState);
+      clearStorage();
     }
   };
 }

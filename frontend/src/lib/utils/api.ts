@@ -1,125 +1,226 @@
-import type { HealthResponse, InitializeRequest, InitializeResponse, LoginRequest, LoginResponse, LogoutResponse, RecoveryVerifyRequest, RecoveryVerifyResponse, RefreshTokenRequest, RefreshTokenResponse, ResetRequest, ResetResponse, SetupStatusResponse } from "$lib/types/api";
+import type { CreateAuthorizationRequestDto, CreateCredentialOfferDto, CreateUserDto, CredentialOfferResponse, DatabaseHealthResponse, HealthResponse, LightHealthResponse, LoginRequest, LoginResponse, LogoutResponse, MetricsResponse, PaginatedUsersResponse, ProfileResponse, UpdateUserDto, UsersQueryParams, VerificationRequest } from "$lib/types/api";
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import axios from "axios";
 
 const API_BASE = 'http://localhost:3000';
 
-export async function fetchHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${API_BASE}/health?detailed=true`);
+const api: AxiosInstance = axios.create({
+  baseURL: API_BASE,
+  headers: {
+    'Content-Type': 'application/json',
+  } as Record<string, string>,
+  timeout: 10000,
+});
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedAuth = localStorage.getItem('auth');
+
+        if (storedAuth) {
+          const auth = JSON.parse(storedAuth);
+          if (auth.accessToken) {
+            config.headers = config.headers || {};
+            config.headers.Authorization = `Bearer ${auth.accessToken}`;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to get auth token:', error);
+      }
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error)
   }
+);
 
-  return response.json();
+api.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth');
+      }
+      // window.location.href = '/login';
+    }
+    
+    const message = error.response?.data?.message || 
+      error.message || 
+      'Request failed';
+    
+    return Promise.reject(new Error(message));
+  }
+);
+
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const storedAuth = localStorage.getItem('auth');
+    if (storedAuth) {
+      const auth = JSON.parse(storedAuth);
+      return auth.accessToken;
+    }
+  } catch (error) {
+    console.error('Failed to get auth token:', error);
+  }
+  
+  return null;
 }
 
-export async function checkSetupStatus(): Promise<SetupStatusResponse> {
-  const response = await fetch(`${API_BASE}/setup/status`);
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+export function isAuthenticated(): boolean {
+  const token = getAuthToken();
+  return !!token;
+}
+export function setAuthToken(token: string): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const storedAuth = localStorage.getItem('auth');
+    const auth = storedAuth ? JSON.parse(storedAuth) : {};
+    auth.accessToken = token;
+    localStorage.setItem('auth', JSON.stringify(auth));
+    
+    api.defaults.headers.common.Authorization = `Bearer ${token}`;
+  } catch (error) {
+    console.error('Failed to set auth token:', error);
   }
-
-  return response.json();
 }
 
-export async function initializeSetup(data: InitializeRequest): Promise<InitializeResponse> {
-  const response = await fetch('/setup/initialize', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
+export function clearAuth(): void {
+  if (typeof window === 'undefined') return;
+  
+  localStorage.removeItem('auth');
+  delete api.defaults.headers.common.Authorization;
+}
+
+
+
+
+
+// ====== Health =======
+export async function getHealth(detailed = true): Promise<HealthResponse> {
+  const response = await api.get<HealthResponse>('/health', {
+    params: {
+      detailed
+    }
   });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || `HTTP ${response.status}`);
-  }
-  
-  return response.json();
+  return response.data;
 }
 
-export async function verifyRecovery(data: RecoveryVerifyRequest): Promise<RecoveryVerifyResponse> {
-  const response = await fetch('/setup/verify-recovery', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || `HTTP ${response.status}`);
-  }
-  
-  return response.json();
+export async function getLightHealth(): Promise<LightHealthResponse> {
+  const response = await api.get<LightHealthResponse>('/health/light');
+  return response.data;
 }
 
-export async function resetSetup(data: ResetRequest): Promise<ResetResponse> {
-  const response = await fetch('/setup/reset', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || `HTTP ${response.status}`);
-  }
-  
-  return response.json();
+export async function getDatabaseHealth(): Promise<DatabaseHealthResponse> {
+  const response = await api.get<DatabaseHealthResponse>('/health/database');
+  return response.data;
 }
+
+export async function getMetrics(): Promise<MetricsResponse> {
+  const response = await api.get<MetricsResponse>('/health/metrics');
+  return response.data;
+}
+
+
+
+// ====== Auth =======
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
-  const response = await fetch(`${API_BASE}/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || `HTTP ${response.status}`);
+  const response = await api.post<LoginResponse>('/auth/login', data);
+  
+  // Automatically store token on successful login
+  if (response.data.access_token) {
+    setAuthToken(response.data.access_token);
   }
-
-  return response.json();
-}
-
-export async function refreshToken(data: RefreshTokenRequest): Promise<RefreshTokenResponse> {
-  const response = await fetch(`${API_BASE}/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || `HTTP ${response.status}`);
-  }
-
-  return response.json();
+  
+  return response.data;
 }
 
 export async function logout(): Promise<LogoutResponse> {
-  const response = await fetch(`${API_BASE}/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({})
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || `HTTP ${response.status}`);
-  }
-
-  return response.json();
+  const response = await api.post<LogoutResponse>('/auth/logout');
+  
+  // Clear auth on logout
+  clearAuth();
+  
+  return response.data;
 }
+
+export async function getProfile(): Promise<ProfileResponse> {
+  const response = await api.get<ProfileResponse>('/auth/profile');
+  return response.data;
+}
+
+
+// ===== User ======
+
+export async function createUser(data: CreateUserDto): Promise<any> {
+  const response = await api.post('/users', data);
+  return response.data;
+}
+
+export async function getUsers(params?: UsersQueryParams): Promise<PaginatedUsersResponse> {
+  const response = await api.get<PaginatedUsersResponse>('/users', {
+    params,
+  });
+  return response.data;
+}
+
+export async function getUserById(id: string): Promise<any> {
+  const response = await api.get(`/users/${id}`);
+  return response.data;
+}
+
+export async function updateUser(id: string, data: UpdateUserDto): Promise<any> {
+  const response = await api.patch(`/users/${id}`, data);
+  return response.data;
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  await api.delete(`/users/${id}`);
+}
+
+
+// ===== Credentials =======
+
+export async function createCredentialOffer(data: CreateCredentialOfferDto): Promise<CredentialOfferResponse> {
+  const response = await api.post<CredentialOfferResponse>('/credentials', data);
+  return response.data;
+}
+
+
+// ========= Verification ==========
+
+export async function createVerificationRequest(data: CreateAuthorizationRequestDto): Promise<any> {
+  const response = await api.post('/verification', data);
+  return response.data;
+}
+
+export async function getVerificationRequest(id: string): Promise<VerificationRequest> {
+  const response = await api.get<VerificationRequest>(`/verification/${id}`);
+  return response.data;
+}
+
+
+
+// ====== Utils ========
+
+export function createCancelTokenSource() {
+  return axios.CancelToken.source();
+}
+
+export function isCancel(error: any): boolean {
+  return axios.isCancel(error);
+}
+
+export async function customRequest<T>(config: AxiosRequestConfig): Promise<T> {
+  const response = await api.request<T>(config);
+  return response.data;
+}
+
+
+
+export { api };

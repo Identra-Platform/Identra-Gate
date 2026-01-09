@@ -9,6 +9,8 @@ import { AuthConfigService } from 'src/config/services/auth-config.service';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { LoginAttempt } from './entities/login-attempt.entity';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { LocalStrategy } from './strategies/local.strategy';
 
 @Module({
   imports: [
@@ -28,7 +30,7 @@ import { LoginAttempt } from './entities/login-attempt.entity';
     })
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, LocalStrategy, JwtStrategy],
   exports: []
 })
 export class AuthModule {}
