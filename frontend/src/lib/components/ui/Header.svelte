@@ -3,7 +3,7 @@
 	import { theme } from "$lib/stores/theme";
 	import { Moon, Sun, Thermometer } from "lucide-svelte";
 	import { onMount } from "svelte";
-	import Logo from "./Logo.svelte";
+	import Logo from "../../mocks/Logo.svelte";
 	import { auth } from "$lib/stores/auth";
 	import UserMenu from "../auth/UserMenu.svelte";
 	import Button from "./Button.svelte";

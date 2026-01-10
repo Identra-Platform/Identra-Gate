@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { LoginAttempt } from '../../auth/entities/login-attempt.entity';
+import { ActivityLog } from '../../audit/entities/activity.entity';
 
 export enum UserRole {
   Admin = 'admin',
@@ -28,6 +29,7 @@ export class User {
 
   @Column({
     type: 'enum',
+    array: true,
     enum: UserRole,
     default: [UserRole.Verifier]
   })
@@ -38,6 +40,9 @@ export class User {
 
   @OneToMany(() => LoginAttempt, loginAttempt => loginAttempt.user)
   loginAttempts: LoginAttempt[];
+
+  @OneToMany(() => ActivityLog, activityLog => activityLog.user)
+  activities: ActivityLog[];
 
   @Column({ nullable: true })
   lastLoginAt?: Date;

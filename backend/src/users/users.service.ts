@@ -46,7 +46,6 @@ export class UsersService {
   ) {
     const queryBuilder = this.userRepository
       .createQueryBuilder('user')
-      .leftJoinAndSelect('user.roles', 'roles')
       .take(limit)
       .skip((page - 1) * limit);
 
@@ -57,10 +56,7 @@ export class UsersService {
       );
     }
     if (role) {
-      queryBuilder
-        .andWhere('roles.role = :role', { role })
-        .leftJoin('user.roles', 'filterRoles')
-        .andWhere('filterRoles.role = :role', { role });
+      queryBuilder.andWhere(':role = ANY(user.roles)', { role });
     }
 
     queryBuilder.orderBy('user.createdAt', 'DESC');
@@ -68,6 +64,7 @@ export class UsersService {
     const [users, total] = await queryBuilder.getManyAndCount();
 
     const pages = Math.ceil(total / limit);
+    console.log(users);
     return {
       users,
       pagination: { page, limit, total, pages },
@@ -76,8 +73,7 @@ export class UsersService {
 
   async findOne(id: string) {
     return await this.userRepository.findOneOrFail({
-      where: { id },
-      relations: ['roles'],
+      where: { id }
     });
   }
 

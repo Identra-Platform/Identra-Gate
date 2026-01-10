@@ -132,16 +132,6 @@
       
       <!-- Menu Items -->
       <div class="py-2">
-        <button
-          on:click={handleProfile}
-          class="flex w-full items-center gap-3 px-4 py-3 text-left text-on-surface transition-colors hover:bg-surface-container-high"
-        >
-          <svg class="h-5 w-5 text-on-surface-variant" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-          <span>My Profile</span>
-        </button>
-        
         {#if auth.isAdmin()}
           <a
             href="/admin"

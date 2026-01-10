@@ -1,3 +1,14 @@
+// === Audit Types ===
+export interface ActivityLog {
+  id: string;
+  timestamp: string;
+  action: string;
+  status: string;
+  error?: string;
+  user: User;
+}
+
+
 // === Health Types ===
 export type HealthStatus = 'up' | 'down' | 'warning' | 'unknown';
 
@@ -149,8 +160,8 @@ export interface UpdateUserDto {
 }
 
 export interface PaginatedUsersResponse {
-  data: User[];
-  meta: {
+  users: User[];
+  pagination: {
     page: number;
     limit: number;
     total: number;

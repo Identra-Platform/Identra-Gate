@@ -14,6 +14,7 @@ import { OpenId4VcConfigService } from 'src/config/services/openid4vc-config.ser
 import { CredentialsConfigService } from 'src/config/services/credentials-config.service';
 import { EnvService } from 'src/config/services/env.service';
 import { LoginAttempt } from 'src/auth/entities/login-attempt.entity';
+import { ActivityLog } from 'src/audit/entities/activity.entity';
 
 const envService = new EnvService();
 const configService = new AppConfigService(
@@ -35,7 +36,7 @@ export const dataSourceOptions: DataSourceOptions = {
   username: configService.database.username,
   password: configService.database.password,
   database: configService.database.database,
-  entities: [User, IssuedCredential,LoginAttempt],
+  entities: [User, IssuedCredential, LoginAttempt, ActivityLog],
   migrations: ['./migration/**/*{.js,.ts}'],
   synchronize: true,
 };

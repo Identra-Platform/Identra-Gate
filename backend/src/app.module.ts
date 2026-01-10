@@ -11,8 +11,10 @@ import { NetworkInfoModule } from './network-info/network-info.module';
 import { VerificationModule } from './verification/verification.module';
 import { CredoModule } from './credo/credo.module';
 import { AuthModule } from './auth/auth.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { AuditModule } from './audit/audit.module';
+import { ActivityInterceptor } from './audit/interceptor/activity.interceptor';
 
 @Module({
   imports: [
@@ -25,8 +27,12 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     NetworkInfoModule,
     VerificationModule,
     AuthModule,
+    AuditModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, {
+    provide: APP_INTERCEPTOR,
+    useClass: ActivityInterceptor,
+  }],
 })
 export class AppModule {}

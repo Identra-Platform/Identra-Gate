@@ -2,20 +2,24 @@
   import { auth } from '$lib/stores/auth';
   import Card from '$lib/components/ui/Card.svelte';
   import Button from '$lib/components/ui/Button.svelte';
-  import { getHealth, getMetrics } from '$lib/utils/api';
+  import { getHealth, getMetrics, getRecentActivites } from '$lib/utils/api';
   import { onMount } from 'svelte';
-	import type { HealthResponse } from '$lib/types/api';
+	import type { ActivityLog, HealthResponse } from '$lib/types/api';
 	import { goto } from '$app/navigation';
+	import Loading from '$lib/components/ui/Loading.svelte';
+	import RecentActivity from '$lib/components/admin/RecentActivity.svelte';
   
   let healthData: HealthResponse | null = null;
   let metricsData = null;
   let loading = true;
   let error = '';
+  let activities: Promise<ActivityLog[]> | null = null;
   
   onMount(async () => {
     try {
       // Fetch health data
       healthData = await getHealth();
+      activities = getRecentActivites();
       
       // Fetch metrics data if available
       try {
@@ -29,6 +33,68 @@
       loading = false;
     }
   });
+
+  function formatAction(action: string): string {
+    const actions: Record<string, string> = {
+      'LOGIN': 'User Login',
+      'LOGOUT': 'User Logout',
+      'CREATE': 'Created Record',
+      'UPDATE': 'Updated Record',
+      'DELETE': 'Deleted Record',
+      'READ': 'Viewed Record',
+      'DOWNLOAD': 'File Downloaded',
+      'UPLOAD': 'File Uploaded',
+      'EXPORT': 'Data Exported',
+      'IMPORT': 'Data Imported'
+    };
+    return actions[action] || action;
+  }
+  
+  // Format time ago
+  function formatTimeAgo(timestamp: string): string {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString();
+  }
+  
+  // Get browser icon
+  function getBrowserIcon(userAgent: string): string {
+    if (userAgent.includes('Chrome')) return 'Chrome';
+    if (userAgent.includes('Firefox')) return 'Firefox';
+    if (userAgent.includes('Safari')) return 'Safari';
+    if (userAgent.includes('Edge')) return 'Edge';
+    return 'Browser';
+  }
+  
+  // Get device info
+  function getDeviceInfo(userAgent: string): string {
+    if (/mobile/i.test(userAgent)) return 'Mobile';
+    if (/tablet/i.test(userAgent)) return 'Tablet';
+    if (/Macintosh|Mac OS/.test(userAgent)) return 'Mac';
+    if (/Windows/.test(userAgent)) return 'Windows';
+    if (/Linux/.test(userAgent)) return 'Linux';
+    return 'Desktop';
+  }
+  
+  // Event handlers
+  function handleActivityClick(activity: any) {
+    // Emit event or navigate
+    console.log('Activity clicked:', activity);
+  }
+
+  function refreshActivities() {
+    // Dispatch refresh event
+  }
 </script>
 
 <div class="space-y-6">
@@ -155,9 +221,9 @@
   </div>
   
   <!-- Main Content Area -->
-  <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <div class="grid gap-6 grid-cols-1 lg:grid-cols-3">
     <!-- Left Column: Quick Actions -->
-    <div class="lg:col-span-2">
+    <div class='col-span-1 lg:col-span-2'>
       <Card elevation={2} padding="large" class="h-full">
         <h3 class="mb-4 text-lg font-semibold text-on-surface">Quick Actions</h3>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -225,63 +291,7 @@
         </div>
       </Card>
     </div>
-    
-    <!-- Right Column: Recent Activity -->
-    <div>
-      <Card elevation={2} padding="large" class="h-full">
-        <h3 class="mb-4 text-lg font-semibold text-on-surface">Recent Activity</h3>
-        <div class="space-y-4">
-          <div class="flex items-start gap-3">
-            <div class="rounded-full bg-primary-container p-2">
-              <svg class="h-4 w-4 text-on-primary-container" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-on-surface">System Login</p>
-              <p class="text-xs text-on-surface-variant">
-                {#if $auth.user}
-                  {$auth.user.username} logged in
-                {:else}
-                  User logged in
-                {/if}
-              </p>
-            </div>
-          </div>
-          
-          <div class="flex items-start gap-3">
-            <div class="rounded-full bg-secondary-container p-2">
-              <svg class="h-4 w-4 text-on-secondary-container" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-on-surface">System Check</p>
-              <p class="text-xs text-on-surface-variant">
-                {#if healthData}
-                  Health check completed: {healthData.status}
-                {:else}
-                  Health check pending
-                {/if}
-              </p>
-            </div>
-          </div>
-          
-          <div class="flex items-start gap-3">
-            <div class="rounded-full bg-tertiary-container p-2">
-              <svg class="h-4 w-4 text-on-tertiary-container" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-on-surface">System Status</p>
-              <p class="text-xs text-on-surface-variant">
-                Version {#if healthData}{healthData.version}{:else}1.0.0{/if} • {#if healthData}{healthData.environment}{:else}production{/if}
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
-    </div>
+
+    <RecentActivity />
   </div>
 </div>

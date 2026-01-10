@@ -3,6 +3,8 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
 import { ApiBearerAuth, ApiBody, ApiForbiddenResponse, ApiOperation, ApiResponse, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ActivityLog } from 'src/audit/decorators/activity-log.decorator';
+import { ActivityAction } from 'src/audit/entities/activity.entity';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -43,6 +45,9 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
   @ApiForbiddenResponse({ description: 'Too many login attempts' })
   @UseGuards(AuthGuard('local'))
+  @ActivityLog({
+    action: ActivityAction.Login,
+  })
   @Post('login')
   async login(
     @Body() loginDto: { username: string, password: string },
@@ -82,6 +87,9 @@ export class AuthController {
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @UseGuards(AuthGuard('jwt'))
+  @ActivityLog({
+    action: ActivityAction.Logout,
+  })
   @Post('logout')
   async logout() {
     return { message: 'Logged out successfully' };

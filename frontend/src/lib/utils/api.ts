@@ -1,4 +1,4 @@
-import type { CreateAuthorizationRequestDto, CreateCredentialOfferDto, CreateUserDto, CredentialOfferResponse, DatabaseHealthResponse, HealthResponse, LightHealthResponse, LoginRequest, LoginResponse, LogoutResponse, MetricsResponse, PaginatedUsersResponse, ProfileResponse, UpdateUserDto, UsersQueryParams, VerificationRequest } from "$lib/types/api";
+import type { ActivityLog, CreateAuthorizationRequestDto, CreateCredentialOfferDto, CreateUserDto, CredentialOfferResponse, DatabaseHealthResponse, HealthResponse, LightHealthResponse, LoginRequest, LoginResponse, LogoutResponse, MetricsResponse, PaginatedUsersResponse, ProfileResponse, UpdateUserDto, UsersQueryParams, VerificationRequest } from "$lib/types/api";
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import axios from "axios";
 
@@ -98,6 +98,16 @@ export function clearAuth(): void {
 
 
 
+// ======= Audit ========
+export async function getRecentActivites(limit = 3): Promise<ActivityLog[]> {
+  const response = await api.get<ActivityLog[]>('/audit/logs/recent', {
+    params: {
+      limit
+    }
+  });
+  return response.data;
+}
+
 
 
 // ====== Health =======
@@ -142,6 +152,7 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
 
 export async function logout(): Promise<LogoutResponse> {
   const response = await api.post<LogoutResponse>('/auth/logout');
+  console.log(response);
   
   // Clear auth on logout
   clearAuth();
