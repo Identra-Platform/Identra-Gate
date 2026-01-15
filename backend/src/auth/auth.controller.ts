@@ -13,37 +13,6 @@ export class AuthController {
     private readonly authService: AuthService
   ) {}
 
-  @ApiOperation({ summary: 'User login' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        username: { type: 'string', example: 'john_doe' },
-        password: { type: 'string', example: 'password123' }
-      }
-    }
-  })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Login successful',
-    schema: {
-      type: 'object',
-      properties: {
-        access_token: { type: 'string' },
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'number' },
-            username: { type: 'string' },
-            email: { type: 'string' },
-            roles: { type: 'array', items: { type: 'string' } }
-          }
-        }
-      }
-    }
-  })
-  @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
-  @ApiForbiddenResponse({ description: 'Too many login attempts' })
   @UseGuards(AuthGuard('local'))
   @ActivityLog({
     action: ActivityAction.Login,
@@ -59,33 +28,6 @@ export class AuthController {
     return this.authService.login(req.user, ipAddress!, userAgent);
   }
 
-  @ApiOperation({ summary: 'Get user profile' })
-  @ApiBearerAuth()
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Returns user profile',
-    type: Object
-  })
-  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  @UseGuards(AuthGuard('jwt'))
-  @Get('profile')
-  getProfile(@Req() req: Request) {
-    return req.user;
-  }
-
-  @ApiOperation({ summary: 'User logout' })
-  @ApiBearerAuth()
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Logout successful',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'Logged out successfully' }
-      }
-    }
-  })
-  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @UseGuards(AuthGuard('jwt'))
   @ActivityLog({
     action: ActivityAction.Logout,

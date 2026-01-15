@@ -10,7 +10,7 @@ import { HealthModule } from 'src/health/health.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([ActivityLog, User]),
-    UsersModule, HealthModule
+    HealthModule
   ],
   providers: [AuditService, ActivityInterceptor],
   exports: [AuditService, ActivityInterceptor],

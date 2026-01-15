@@ -183,7 +183,7 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
         throw new Error('Session not found');
       }
 
-      const credentialConfig = this.credentialConfigService.getCredentialById(sessionData.credentialId);
+      const credentialConfig = await this.templateService.findOne(sessionData.credentialId);
       if (!credentialConfig) {
         throw new Error('Credential configuration not found');
       }

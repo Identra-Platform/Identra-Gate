@@ -6,8 +6,7 @@ import { UsersService } from 'src/users/users.service';
 @Controller('audit')
 export class AuditController {
   constructor(
-    private readonly auditService: AuditService,
-    private readonly userService: UsersService
+    private readonly auditService: AuditService
   ) {}
 
   @Get('logs/recent')
@@ -15,13 +14,6 @@ export class AuditController {
     @Query('limit') limit?: number
   ): Promise<ActivityLog[]> {
     return this.auditService.getRecentActivities(limit);
-  }
-
-  @Get('logs/:userId')
-  async getLogsById(@Param('userId') userId: string) {
-    const user = await this.userService.findOne(userId);
-    if (!user) return [];
-    return this.auditService.getUserActivities(user);
   }
 
   @Get('statistics')

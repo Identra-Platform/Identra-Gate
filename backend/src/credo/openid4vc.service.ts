@@ -26,7 +26,6 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
     const httpAdapter = this.httpAdapterHost.httpAdapter;
     if (httpAdapter.getType() === 'express') {
       this.expressApp = httpAdapter.getInstance();
-      // Agent is now initialized by AgentProvider
     }
   }
 
