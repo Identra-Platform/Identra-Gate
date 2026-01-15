@@ -2,6 +2,8 @@
 	import { goto } from '$app/navigation';
   import Button from '$lib/components/ui/Button.svelte';
   import Card from '$lib/components/ui/Card.svelte';
+	import type { ActivityLog } from '$lib/types/api';
+	import { getRecentActivites } from '$lib/utils/api';
   
   const actions = [
     {
@@ -52,6 +54,54 @@
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
     `
   };
+
+  async function exportLogs() {
+    const activities = await getRecentActivites();
+
+    try {
+      // Prepare CSV data
+      const headers = ['Timestamp', 'User', 'Email', 'Action', 'Status', 'Error', 'Roles'];
+      
+      const csvData = activities.map(activity => [
+        activity.timestamp,
+        activity.user?.name || 'Unknown',
+        activity.user?.email || '',
+        activity.action,
+        activity.status,
+        activity.error || '',
+        activity.user?.roles?.join(', ') || ''
+      ]);
+      
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...csvData.map(row => 
+          row.map(cell => 
+            `"${String(cell).replace(/"/g, '""')}"`
+          ).join(',')
+        )
+      ].join('\n');
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      
+      link.href = url;
+      link.download = `activity-logs-${dateStr}_${timeStr}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error exporting logs:', error);
+    }
+  }
 </script>
 
 <Card elevation={2} padding="large" class="h-full">
@@ -59,7 +109,11 @@
   <div class='grid gap-4 lg:grid-cols-2'>
     {#each actions as action}
       <Button
-        onclick={() => goto(action.href)}
+        onclick={() => {
+          if (action.icon === 'export') {
+            exportLogs();
+          } else goto(action.href);
+        }}
         variant={action.variant}
         class="h-auto w-full justify-start p-3 text-left"
       >
