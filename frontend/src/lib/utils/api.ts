@@ -1,4 +1,4 @@
-import type { ActivityLog, CreateAuthorizationRequestDto, CreateCredentialOfferDto, CreateUserDto, CredentialOfferResponse, DatabaseHealthResponse, HealthResponse, LightHealthResponse, LoginRequest, LoginResponse, LogoutResponse, MetricsResponse, PaginatedUsersResponse, ProfileResponse, UpdateUserDto, UsersQueryParams, VerificationRequest } from "$lib/types/api";
+import type { ActivityLog, CreateAuthorizationRequestDto, CreateCredentialOfferDto, CreateTemplateDto, CreateUserDto, CredentialOfferResponse, DatabaseHealthResponse, HealthResponse, LightHealthResponse, LoginRequest, LoginResponse, LogoutResponse, MetricsResponse, PaginatedUsersResponse, ProfileResponse, Statistics, Template, UpdateUserDto, UsersQueryParams, VerificationRequest } from "$lib/types/api";
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import axios from "axios";
 
@@ -108,6 +108,11 @@ export async function getRecentActivites(limit = 3): Promise<ActivityLog[]> {
   return response.data;
 }
 
+export async function getStatistics(): Promise<Statistics> {
+  const response = await api.get<Statistics>('/audit/statistics');
+  return response.data;
+}
+
 
 
 // ====== Health =======
@@ -199,6 +204,31 @@ export async function deleteUser(id: string): Promise<void> {
 
 export async function createCredentialOffer(data: CreateCredentialOfferDto): Promise<CredentialOfferResponse> {
   const response = await api.post<CredentialOfferResponse>('/credentials', data);
+  return response.data;
+}
+
+export async function getCredentialById(id: string) {
+  const response = await api.get<CredentialOfferResponse>(`/credentials/${id}`);
+  return response.data;
+}
+
+export async function getAllCredentials() {
+  const response = await api.get<CredentialOfferResponse[]>('/credentials');
+  return response.data;
+}
+
+export async function createTemplate(data: CreateTemplateDto) {
+  const response = await api.post('/templates', data);
+  return response.data;
+}
+
+export async function getTemplates() {
+  const response = await api.get<Template[]>('/templates');
+  return response.data;
+}
+
+export async function getTemplateById(id: string) {
+  const response = await api.get<Template>(`/templates/${id}`);
   return response.data;
 }
 

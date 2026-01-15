@@ -7,6 +7,8 @@
 	import { goto } from '$app/navigation';
 	import UsersManagement from './UsersManagement.svelte';
 	import ActivityLog from './ActivityLog.svelte';
+	import { getStatistics } from '$lib/utils/api';
+	import Loading from '../ui/Loading.svelte';
   
   export let activeSection: 'dashboard' | 'users' | 'metrics' | 'activity' = 'dashboard';
   
@@ -15,6 +17,8 @@
     { id: 'users', label: 'Users', icon: 'users' },
     { id: 'activity', label: 'Activity', icon: 'activity' }
   ];
+
+  const statistics = getStatistics();
 </script>
 
 <div class="space-y-6">
@@ -55,20 +59,24 @@
   <!-- Dashboard Content -->
   {#if activeSection === 'dashboard'}
     <!-- Quick Stats -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
-      <StatsCard
-        title="Total Users"
-        value="24"
-        icon="users"
-        color="primary"
-      />
-      <StatsCard
-        title="System Health"
-        value="98%"
-        icon="health"
-        color="success"
-      />
-    </div>
+    {#await statistics}
+      <Loading />
+    {:then data} 
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
+        <StatsCard
+          title="Total Users"
+          value={data.totalUsers.toString()}
+          icon="users"
+          color="primary"
+        />
+        <StatsCard
+          title="System Health"
+          value={`${data.healthPercentage}%`}
+          icon="health"
+          color="success"
+        />
+      </div>
+    {/await}
     
     <!-- Quick Actions & System Metrics -->
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">

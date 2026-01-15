@@ -1,7 +1,6 @@
 import { runSeeders, SeederOptions } from 'typeorm-extension';
 import { User } from '../src/users/entities/user.entity';
 import { DataSource, DataSourceOptions } from 'typeorm';
-import { IssuedCredential } from 'src/credo/entities/issued-credential.entity';
 import { AppConfigService } from 'src/config/services/app-config.service';
 import { DatabaseConfigService } from 'src/config/services/database-config.service';
 import { AuthConfigService } from 'src/config/services/auth-config.service';
@@ -15,6 +14,10 @@ import { CredentialsConfigService } from 'src/config/services/credentials-config
 import { EnvService } from 'src/config/services/env.service';
 import { LoginAttempt } from 'src/auth/entities/login-attempt.entity';
 import { ActivityLog } from 'src/audit/entities/activity.entity';
+import { TemplateField } from 'src/credentials/templates/entities/template-field.entity';
+import { CredentialTag } from 'src/credentials/templates/entities/credential-tag.entity';
+import { CredentialTemplate } from 'src/credentials/templates/entities/credential-template.entity';
+import { Credential } from 'src/credentials/entities/credential.entity';
 
 const envService = new EnvService();
 const configService = new AppConfigService(
@@ -36,9 +39,14 @@ export const dataSourceOptions: DataSourceOptions = {
   username: configService.database.username,
   password: configService.database.password,
   database: configService.database.database,
-  entities: [User, IssuedCredential, LoginAttempt, ActivityLog],
+  entities: [
+    User, LoginAttempt, ActivityLog,
+    TemplateField, CredentialTag,
+    CredentialTemplate,
+    Credential
+  ],
   migrations: ['./migration/**/*{.js,.ts}'],
-  synchronize: true,
+  synchronize: true
 };
 
 const dataSource = new DataSource(dataSourceOptions);

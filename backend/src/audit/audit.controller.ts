@@ -23,4 +23,9 @@ export class AuditController {
     if (!user) return [];
     return this.auditService.getUserActivities(user);
   }
+
+  @Get('statistics')
+  async getStatistics() {
+    return this.auditService.getStatistics();
+  }
 }

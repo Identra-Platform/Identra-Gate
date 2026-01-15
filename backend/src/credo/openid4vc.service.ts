@@ -61,11 +61,11 @@ export class OpenId4VcService implements OnModuleDestroy, OnModuleInit {
   }
 
   getIssuer() {
-    return this.agentProvider.getIssuerApi();
+    return this.agentProvider.getIssuerRecord();
   }
 
   getVerifier() {
-    return this.agentProvider.getVerifierApi();
+    return this.agentProvider.getVerifierRecord();
   }
 
   async onModuleDestroy() {

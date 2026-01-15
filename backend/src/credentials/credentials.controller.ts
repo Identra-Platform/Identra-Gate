@@ -1,7 +1,9 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { CredentialsService } from './credentials.service';
 import { CreateCredentialOfferDto } from './dto/credential-offer.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { type Request } from 'express';
 
 @ApiTags('Credentials')
 @Controller('credentials')
@@ -10,6 +12,7 @@ export class CredentialsController {
     private readonly credentialsService: CredentialsService
   ) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Post()
   @ApiOperation({ 
     summary: 'Create credential offer', 
@@ -39,7 +42,25 @@ export class CredentialsController {
   @ApiResponse({ status: 400, description: 'Invalid request data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  createCredentialOffer(@Body() createCredentialOfferDto: CreateCredentialOfferDto) {
-    return this.credentialsService.createCredentialOffer(createCredentialOfferDto);
+  createCredentialOffer(
+    @Req() request: Request,
+    @Body() createCredentialOfferDto: CreateCredentialOfferDto
+  ) {
+    return this.credentialsService.createCredentialOffer(
+      (request.user as any).id,
+      createCredentialOfferDto
+    );
+  }
+
+  @Get(':id')
+  getCredentialById(
+    @Param('id') id: string
+  ) {
+    return this.credentialsService.getCredentialById(id);
+  }
+
+  @Get()
+  getAllCredential() {
+    return this.credentialsService.getAllCredentials();
   }
 }

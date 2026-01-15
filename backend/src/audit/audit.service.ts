@@ -51,5 +51,12 @@ export class AuditService {
 
   async getStatistics() {
     const totalUsers = await this.userRepository.count();
+    const health = await this.healthService.checkHealth()
+    const healthRatio = health.checks.filter(c => c.status === 'up').length / health.checks.length;
+    const healthPercentage = healthRatio * 100;
+    return {
+      totalUsers,
+      healthPercentage
+    }
   }
 }

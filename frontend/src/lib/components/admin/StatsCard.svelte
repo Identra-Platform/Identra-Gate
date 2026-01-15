@@ -3,7 +3,7 @@
   
   export let title: string;
   export let value: string;
-  export let icon: 'users' | 'activity' | 'health' | 'performance';
+  export let icon: 'users' | 'activity' | 'health' | 'performance' | 'issued' | 'active' | 'pending' | 'success';
   export let color: 'primary' | 'secondary' | 'success' | 'warning' | 'error';
   
   const colorClasses = {
@@ -32,6 +32,22 @@
             d="M13 10V3L4 14h7v7l9-11h-7z" />
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
             d="M9 12l2 2 4-4" />
+    `,
+    issued: `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    `,
+    active: `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+    `,
+    pending: `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    `,
+    success: `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
     `
   };
 </script>

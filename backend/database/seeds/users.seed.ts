@@ -1,6 +1,8 @@
-import { User, UserRole } from "../../src/users/entities/user.entity";
+import { UserRole } from "../../src/users/types/user-role.type";
+import { User } from "../../src/users/entities/user.entity";
 import { DataSource } from "typeorm";
 import { Seeder, SeederFactoryManager } from "typeorm-extension";
+import * as bcrypt from 'bcrypt';
 
 export default class UserSeeder implements Seeder {
   async run(
@@ -20,7 +22,7 @@ export default class UserSeeder implements Seeder {
       email: 'admin@example.com',
       name: 'admin',
       roles: [UserRole.Admin],
-      password: 'admin'
+      password: await bcrypt.hash('admin', 10)
     });
     await repository.save(admin);
   }

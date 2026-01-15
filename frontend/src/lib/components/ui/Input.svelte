@@ -4,8 +4,8 @@
 
 	interface Props {
 		label?: string;
-		type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search';
-		value?: string;
+		type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date';
+		value?: string | number;
 		error?: string;
 		required?: boolean;
 		disabled?: boolean;
@@ -18,7 +18,7 @@
 	let {
 		label = '',
 		type = 'text',
-		value = $bindable(''),
+		value = $bindable<string | number>(''),
 		error = '',
 		required = false,
 		disabled = false,
@@ -36,59 +36,65 @@
 		const target = e.target as HTMLInputElement;
 		value = target.value;
 	};
+	
+	// Format date value for display (optional)
+	let formattedValue = $derived(type === 'date' && value 
+		? new Date(value).toISOString().split('T')[0] 
+		: value);
 </script>
 
 <div class="space-y-1">
-  {#if label}
-    <label
-      for={id}
-      class="block text-sm font-medium text-on-surface-variant transition-all duration-200
-             {focused || value ? 'text-primary' : ''}
-             {error ? 'text-error' : ''}"
-    >
-      {label} {#if required}<span class="text-error">*</span>{/if}
-    </label>
-  {/if}
-  
-  <div
-    class="relative rounded-lg border transition-all duration-200
-           {error ? 'border-error' : 'border-outline-variant'}
-           {focused ? 'border-2 border-primary' : ''}
-           {disabled ? 'bg-neutral-95 border-neutral-80' : 'bg-surface-container-high'}"
-  >
-    {#if leadingIcon}
-      {@const Icon = leadingIcon}
-      <div class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
-        <Icon />
-      </div>
-    {/if}
-    
-    <input
-      {id}
-      {type}
-      {value}
-      {placeholder}
-      {disabled}
-      onfocus={() => focused = true}
-      onblur={() => focused = false}
-      oninput={handleInput}
-      class="w-full bg-transparent px-4 py-3 text-on-surface focus:outline-none
-             {leadingIcon ? 'pl-12' : ''}
-             {trailingIcon ? 'pr-10' : ''}
-             {disabled ? 'text-neutral-50 cursor-not-allowed' : ''}"
-    />
-    
-    {#if trailingIcon}
-      {@const Icon = trailingIcon}
-      <div class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
-        <Icon />
-      </div>
-    {/if}
-  </div>
-  
-  {#if helperText || error}
-    <p class="text-xs {error ? 'text-error' : 'text-on-surface-variant'}">
-      {error || helperText}
-    </p>
-  {/if}
+	{#if label}
+		<label
+			for={id}
+			class="block text-sm font-medium text-on-surface-variant transition-all duration-200
+					{focused || value ? 'text-primary' : ''}
+					{error ? 'text-error' : ''}"
+		>
+			{label} {#if required}<span class="text-error">*</span>{/if}
+		</label>
+	{/if}
+	
+	<div
+		class="relative rounded-lg border transition-all duration-200
+				{error ? 'border-error' : 'border-outline-variant'}
+				{focused ? 'border-2 border-primary' : ''}
+				{disabled ? 'bg-neutral-95 border-neutral-80' : 'bg-surface-container-high'}"
+	>
+		{#if leadingIcon}
+			{@const Icon = leadingIcon}
+			<div class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
+				<Icon />
+			</div>
+		{/if}
+		
+		<input
+			{id}
+			{type}
+			value={formattedValue}
+			{placeholder}
+			{disabled}
+			onfocus={() => focused = true}
+			onblur={() => focused = false}
+			oninput={handleInput}
+			class="w-full bg-transparent px-4 py-3 text-on-surface focus:outline-none
+					{leadingIcon ? 'pl-12' : ''}
+					{trailingIcon ? 'pr-10' : ''}
+					{disabled ? 'text-neutral-50 cursor-not-allowed' : ''}"
+			{...restProps}
+		/>
+		
+		{#if trailingIcon}
+			{@const Icon = trailingIcon}
+			<div class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
+				<Icon />
+			</div>
+		{/if}
+	</div>
+	
+	{#if helperText || error}
+		<p class="text-xs {error ? 'text-error' : 'text-on-surface-variant'}">
+			{error || helperText}
+		</p>
+	{/if}
 </div>

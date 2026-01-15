@@ -1,15 +1,14 @@
 import '@openwallet-foundation/askar-nodejs';
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Agent, ClaimFormat, ConsoleLogger, DcqlQuery, DidsModule, LogLevel, SdJwtVcSignOptions } from '@credo-ts/core';
-import { OpenId4VcModule, OpenId4VciCredentialRequestToCredentialMapperOptions, OpenId4VciSignSdJwtCredentials } from '@credo-ts/openid4vc';
-import { AskarModule, AskarStoreManager } from '@credo-ts/askar';
+import { OpenId4VcModule, OpenId4VciCredentialConfigurationsSupportedWithFormats, OpenId4VciCredentialRequestToCredentialMapperOptions, OpenId4VciSignSdJwtCredentials } from '@credo-ts/openid4vc';
+import { AskarModule } from '@credo-ts/askar';
 import { HederaModule, HederaDidCreateOptions, HederaDidRegistrar, HederaDidResolver } from '@credo-ts/hedera';
 import { askar } from '@openwallet-foundation/askar-nodejs';
 import { agentDependencies } from '@credo-ts/node';
 import { OpenId4VcIssuerRecord, OpenId4VcVerifierRecord } from '@credo-ts/openid4vc';
 import { IssuanceSessionData, SessionManagerService, VerificationSessionData } from './session-manager.service';
 import { Repository } from 'typeorm';
-import { IssuedCredential } from './entities/issued-credential.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OpenId4VcConfigService } from 'src/config/services/openid4vc-config.service';
 import { AgentConfigService } from 'src/config/services/agent-config.service';
@@ -17,6 +16,8 @@ import { DatabaseConfigService } from 'src/config/services/database-config.servi
 import { DidsConfigService } from 'src/config/services/dids-config.service';
 import { OfferedCredentialsConfigService } from 'src/config/services/offered-credentials-config.service';
 import { HttpAdapterHost } from '@nestjs/core';
+import { TemplatesService } from 'src/credentials/templates/templates.service';
+import { Credential } from 'src/credentials/entities/credential.entity';
 
 type AgentModules = {
   askar: AskarModule;
@@ -52,9 +53,11 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
     private readonly didsConfig: DidsConfigService,
     private readonly credentialConfigService: OfferedCredentialsConfigService,
     private readonly sessionManager: SessionManagerService,
-    @InjectRepository(IssuedCredential)
-    private readonly issuedCredentialRepository: Repository<IssuedCredential>,
-    private readonly httpAdapter: HttpAdapterHost
+    @InjectRepository(Credential)
+    private readonly credentialRepository: Repository<Credential>,
+    private readonly httpAdapter: HttpAdapterHost,
+    @Inject(forwardRef(() => TemplatesService))
+    private readonly templateService: TemplatesService
   ) {}
 
   async onModuleInit() {
@@ -215,7 +218,7 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
       );
 
       // Update issued credential status
-      await this.issuedCredentialRepository.update(
+      await this.credentialRepository.update(
         { transactionId: sessionId },
         { status: 'issued' }
       );
@@ -267,7 +270,12 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
       throw new Error('OpenID4VC issuer API not available');
     }
 
-    const config = this.credentialConfigService.convertToOpenId4VciFormat();
+    const templates = await this.templateService.findAll();
+    const config = templates.reduce((acc, template) => {
+      const config = template.toOpenId4Vc();
+      acc[template.id] = config;
+      return acc;
+    }, {} as OpenId4VciCredentialConfigurationsSupportedWithFormats);
     const issuerDisplayConfig = this.credentialConfigService.getIssuerConfig();
     const settings = this.credentialConfigService.getSettings();
 
@@ -420,11 +428,11 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
       issuerId: issuerRecord.issuerId,
       credentialConfigurationIds: [options.credentialId],
       preAuthorizedCodeFlowConfig: {
-        txCode: options.pinRequired ? {
+        txCode: {
           input_mode: 'numeric',
-          length: options.pinLength || 4,
+          length: 4,
           description: 'Accept credential offer',
-        } : undefined,
+        },
       },
       issuanceMetadata: {
         sessionId,

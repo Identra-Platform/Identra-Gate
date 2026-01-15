@@ -8,6 +8,11 @@ export interface ActivityLog {
   user: User;
 }
 
+export interface Statistics {
+  totalUsers: number;
+  healthPercentage: number;
+}
+
 
 // === Health Types ===
 export type HealthStatus = 'up' | 'down' | 'warning' | 'unknown';
@@ -205,9 +210,89 @@ export interface CredentialOfferResponse {
   credentialId: string;
   holderDid: string;
   claims: Record<string, any>;
+  credentialData: Record<string, any>;
   status: string;
   createdAt: string;
   expiration: string;
+  issuer: User;
+}
+
+export interface CreateFieldDto {
+  name: string;
+  required?: boolean;
+  type: string;
+  description?: string;
+  pattern?: string;
+  min?: number;
+  max?: number;
+  options?: string[];
+  defaultValue?: any;
+  order?: number ;
+  group?: string;
+}
+
+export interface CreateDisplayDto {
+  background: string;
+  textColor?: string;
+  logo?: string;
+}
+
+export interface CreateTemplateDto {
+  name: string;
+  description: string;
+  format?: string;
+  credentialType: string;
+  display: CreateDisplayDto;
+  fields?: CreateFieldDto[];
+  tags?: string[];
+  active?: boolean;
+  validityDays?: number;
+  metadata?: Record<string, any>;
+}
+
+export interface TemplateTag {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface TemplateField {
+  id: string;
+  name: string;
+  path: string[];
+  required: boolean;
+  type: string;
+  description: string | null;
+  pattern: string | null;
+  min: number | null;
+  max: number | null;
+  options: string[] | null;
+  defaultValue: any;
+  order: number;
+  group: string | null;
+}
+
+export interface TemplateDisplay {
+  background: string;
+  textColor: string;
+  logo?: string;
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  credentialType: string;
+  format: string;
+  display: TemplateDisplay;
+  fields: TemplateField[];
+  tags: TemplateTag[];
+  active: boolean;
+  validityDays: number | null;
+  createdAt: string;
+  updatedAt: string;
+  metadata: Record<string, any> | null;
 }
 
 // === Verification Types ===

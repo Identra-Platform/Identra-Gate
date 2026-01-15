@@ -1,12 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+import { CredentialTemplate } from '../templates/entities/credential-template.entity';
+import { User } from 'src/users/entities/user.entity';
 
 @Entity('issued_credentials')
-export class IssuedCredential {
+export class Credential {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  credentialId: string;
+  @ManyToOne(() => CredentialTemplate, template => template.credentials)
+  template: CredentialTemplate;
 
   @Column()
   holderDid: string;
@@ -28,4 +30,7 @@ export class IssuedCredential {
 
   @CreateDateColumn()
   issuedAt: Date;
+
+  @ManyToOne(() => User, user => user.issuedCredentials)
+  issuer: User;
 }

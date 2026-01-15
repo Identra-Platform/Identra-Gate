@@ -3,11 +3,16 @@ import { CredentialsService } from './credentials.service';
 import { CredentialsController } from './credentials.controller';
 import { ConfigModule } from 'src/config/config.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { IssuedCredential } from '../credo/entities/issued-credential.entity';
 import { CredoModule } from 'src/credo/credo.module';
+import { TemplatesModule } from './templates/templates.module';
+import { Credential } from './entities/credential.entity';
+import { User } from 'src/users/entities/user.entity';
+import { CredentialTemplate } from './templates/entities/credential-template.entity';
 
 @Module({
-  imports: [CredoModule, ConfigModule, TypeOrmModule.forFeature([IssuedCredential])],
+  imports: [CredoModule, ConfigModule, TypeOrmModule.forFeature([
+    Credential, User, CredentialTemplate
+  ]), TemplatesModule],
   providers: [CredentialsService],
   controllers: [CredentialsController]
 })

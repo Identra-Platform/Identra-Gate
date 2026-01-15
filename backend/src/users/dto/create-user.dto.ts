@@ -9,7 +9,7 @@ import {
   IsStrongPassword,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { UserRole } from '../entities/user.entity';
+import { UserRole } from '../types/user-role.type';
 
 export class CreateUserDto {
   @ApiProperty({

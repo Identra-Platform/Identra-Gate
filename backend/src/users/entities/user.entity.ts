@@ -9,12 +9,8 @@ import {
 import { Exclude } from 'class-transformer';
 import { LoginAttempt } from '../../auth/entities/login-attempt.entity';
 import { ActivityLog } from '../../audit/entities/activity.entity';
-
-export enum UserRole {
-  Admin = 'admin',
-  Verifier = 'verifier',
-  Issuer = 'issuer'
-}
+import { UserRole } from '../types/user-role.type';
+import { Credential } from 'src/credentials/entities/credential.entity';
 
 @Entity()
 export class User {
@@ -43,6 +39,9 @@ export class User {
 
   @OneToMany(() => ActivityLog, activityLog => activityLog.user)
   activities: ActivityLog[];
+
+  @OneToMany(() => Credential, credential => credential.issuer)
+  issuedCredentials: Credential[];
 
   @Column({ nullable: true })
   lastLoginAt?: Date;
