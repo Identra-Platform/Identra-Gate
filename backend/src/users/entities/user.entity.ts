@@ -11,6 +11,7 @@ import { LoginAttempt } from '../../auth/entities/login-attempt.entity';
 import { ActivityLog } from '../../audit/entities/activity.entity';
 import { UserRole } from '../types/user-role.type';
 import { Credential } from 'src/credentials/entities/credential.entity';
+import { VerificationSession } from 'src/verification/entities/verification-session.entity';
 
 @Entity()
 export class User {
@@ -42,6 +43,9 @@ export class User {
 
   @OneToMany(() => Credential, credential => credential.issuer)
   issuedCredentials: Credential[];
+
+  @OneToMany(() => VerificationSession, session => session.verifier)
+  verifications: VerificationSession[];
 
   @Column({ nullable: true })
   lastLoginAt?: Date;

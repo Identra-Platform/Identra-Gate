@@ -95,7 +95,7 @@ export class CredentialsService {
       status: 'pending',
       issuer,
       template,
-      expiresAt: new Date(Date.now() + expiresIn)
+      expiresAt: new Date(Date.now() + (expiresIn * 1000))
     });
 
     this.scheduleEpiration(issuedCredential.id, expiresIn);

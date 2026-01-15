@@ -25,13 +25,6 @@ export class CredentialField {
   @IsEnum(FieldType)
   fieldType: FieldType;
 
-  @ApiProperty({
-    description: 'JSON path to the field in credential',
-    example: '$.name',
-  })
-  @IsString()
-  path: string;
-
   @ApiPropertyOptional({
     description: 'Allowed values for select field type',
     example: ['value1', 'value2'],

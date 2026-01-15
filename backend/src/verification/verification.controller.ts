@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { VerificationService } from './verification.service';
 import { CreateAuthorizationRequestDto } from './dto/verification-request.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { type Request } from 'express';
 
 @ApiTags('Verification')
 @Controller('verification')
@@ -10,6 +12,12 @@ export class VerificationController {
     private readonly verificationService: VerificationService
   ) {}
 
+  @Get()
+  getVerificationSessions() {
+    return this.verificationService.getVerificationSessions();
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Post()
   @ApiOperation({ 
     summary: 'Create verification request', 
@@ -52,8 +60,11 @@ export class VerificationController {
   })
   @ApiResponse({ status: 400, description: 'Invalid request data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  createRequest(@Body() createAuthorizationRequestDto: CreateAuthorizationRequestDto) {
-    return this.verificationService.authorize(createAuthorizationRequestDto);
+  createRequest(
+    @Req() req: Request,
+    @Body() createAuthorizationRequestDto: CreateAuthorizationRequestDto
+  ) {
+    return this.verificationService.authorize((req.user as any).id, createAuthorizationRequestDto);
   }
 
   @Get('/:id')
@@ -105,6 +116,6 @@ export class VerificationController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Verification request not found' })
   getVerificationResponse(@Param('id') id: string) {
-    return this.verificationService.getVerificationRequest(id);
+    return this.verificationService.getVerificationResults(id);
   }
 }

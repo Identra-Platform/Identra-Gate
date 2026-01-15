@@ -296,29 +296,68 @@ export interface Template {
 }
 
 // === Verification Types ===
-export interface CreateAuthorizationRequestDto {
-  credentialRequests: CredentialRequest[];
-  metadata: {
-    purpose: string;
-    expirationDays: number;
+export enum FieldType {
+  Text = 'text',
+  Date = 'date',
+  Number = 'number',
+  Select = 'select'
+}
+
+export interface CredentialRequest {
+  requestName: string;
+  credentialType: string;
+  fields: CredentialField[];
+  settings: {
+    allowMultipleUse: boolean;
   };
 }
 
-export interface VerificationRequest {
-  id: string;
-  status: 'pending' | 'completed' | 'expired' | 'failed';
+export interface CreateAuthorizationRequestDto {
   credentialRequests: CredentialRequest[];
   metadata: {
-    purpose: string;
-    expirationDays: number;
+    purpose?: string;
+    expirationDays?: number;
   };
+}
+
+export interface VerificationSession {
+  id: string;
+  verifier: User;
+  request: {
+    id: string;
+    data: string;
+  };
+  requestedCredentials: {
+    credentialType: string;
+    fields: string[];
+  }[];
+  results?: Record<string, {
+    status: string;
+    claims?: Array<Record<string, any>>;
+  }>;
   createdAt: string;
-  completedAt?: string;
-  expiration: string;
-  result?: {
-    verified: boolean;
-    confidence: number;
+  expiresAt: string;
+  status?: 'pending' | 'success' | 'failed';
+}
+
+export interface VerificationResponse {
+  id: string;
+  verifier: User;
+  request: {
+    id: string;
+    data: string;
   };
+  requestedCredentials: {
+    credentialType: string;
+    fields: string[];
+  }[];
+  results?: Record<string, {
+    status: string;
+    claims?: Array<Record<string, any>>;
+  }>;
+  createdAt: string;
+  expiresAt: string;
+  status: 'pending' | 'success' | 'failed';
 }
 
 // === Global Types ===

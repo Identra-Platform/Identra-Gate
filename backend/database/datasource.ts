@@ -18,6 +18,7 @@ import { TemplateField } from 'src/credentials/templates/entities/template-field
 import { CredentialTag } from 'src/credentials/templates/entities/credential-tag.entity';
 import { CredentialTemplate } from 'src/credentials/templates/entities/credential-template.entity';
 import { Credential } from 'src/credentials/entities/credential.entity';
+import { VerificationSession } from 'src/verification/entities/verification-session.entity';
 
 const envService = new EnvService();
 const configService = new AppConfigService(
@@ -43,7 +44,7 @@ export const dataSourceOptions: DataSourceOptions = {
     User, LoginAttempt, ActivityLog,
     TemplateField, CredentialTag,
     CredentialTemplate,
-    Credential
+    Credential, VerificationSession
   ],
   migrations: ['./migration/**/*{.js,.ts}'],
   synchronize: true

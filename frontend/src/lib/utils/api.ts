@@ -1,4 +1,4 @@
-import type { ActivityLog, CreateAuthorizationRequestDto, CreateCredentialOfferDto, CreateTemplateDto, CreateUserDto, CredentialOfferResponse, DatabaseHealthResponse, HealthResponse, LightHealthResponse, LoginRequest, LoginResponse, LogoutResponse, MetricsResponse, PaginatedUsersResponse, ProfileResponse, Statistics, Template, UpdateUserDto, UsersQueryParams, VerificationRequest } from "$lib/types/api";
+import type { ActivityLog, CreateAuthorizationRequestDto, CreateCredentialOfferDto, CreateTemplateDto, CreateUserDto, CredentialOfferResponse, DatabaseHealthResponse, HealthResponse, LightHealthResponse, LoginRequest, LoginResponse, LogoutResponse, MetricsResponse, PaginatedUsersResponse, ProfileResponse, Statistics, Template, UpdateUserDto, UsersQueryParams, VerificationResponse, VerificationSession } from "$lib/types/api";
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import axios from "axios";
 
@@ -240,11 +240,15 @@ export async function createVerificationRequest(data: CreateAuthorizationRequest
   return response.data;
 }
 
-export async function getVerificationRequest(id: string): Promise<VerificationRequest> {
-  const response = await api.get<VerificationRequest>(`/verification/${id}`);
+export async function getVerificationResults(id: string): Promise<VerificationSession> {
+  const response = await api.get<VerificationSession>(`/verification/${id}`);
   return response.data;
 }
 
+export async function getVerificationSessions() {
+  const response = await api.get<VerificationSession[]>('/verification');
+  return response.data;
+}
 
 
 // ====== Utils ========
