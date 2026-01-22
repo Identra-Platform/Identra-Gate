@@ -309,13 +309,6 @@
               {/if}
             </Button>
             <Button
-              onclick={() => goto(`/credentials/templates/edit/${template.id}`)}
-              variant="text"
-              size="small"
-            >
-              Edit
-            </Button>
-            <Button
               onclick={() => deleteTemplate(template.id, template.name)}
               variant="text"
               size="small"

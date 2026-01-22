@@ -10,8 +10,8 @@ import { Exclude } from 'class-transformer';
 import { LoginAttempt } from '../../auth/entities/login-attempt.entity';
 import { ActivityLog } from '../../audit/entities/activity.entity';
 import { UserRole } from '../types/user-role.type';
-import { Credential } from 'src/credentials/entities/credential.entity';
-import { VerificationSession } from 'src/verification/entities/verification-session.entity';
+import { Credential } from '../../credentials/entities/credential.entity';
+import { VerificationSession } from '../../verification/entities/verification-session.entity';
 
 @Entity()
 export class User {

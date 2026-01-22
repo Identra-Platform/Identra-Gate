@@ -6,40 +6,39 @@
   import Badge from '$lib/components/ui/Badge.svelte';
   import { createVerificationRequest } from '$lib/utils/api';
   import { goto } from '$app/navigation';
-  import { type CreateAuthorizationRequestDto, type CredentialRequest, type CredentialField, FieldType } from '$lib/types/api';
-	import QrCodeDisplay from '../ui/QrCodeDisplay.svelte';
+  import { type CreateAuthorizationRequestDto, type CredentialRequest, type CredentialField, FieldType, type CredentialVerificationField, type CredentialVerificationRequest } from '$lib/types/api';
+  import QrCodeDisplay from '../ui/QrCodeDisplay.svelte';
   
   let loading = false;
   let error = '';
   let createdSession: any = null;
   
-  // Form data
-  let verificationRequest: CreateAuthorizationRequestDto = {
+  // Form data - using writables for better reactivity
+  let verificationRequest: CreateAuthorizationRequestDto = $state({
     credentialRequests: [],
     metadata: {
       purpose: '',
       expirationDays: 30
     }
-  };
+  });
   
   // Current credential request being edited
-  let currentRequest: CredentialRequest = {
+  let currentRequest: CredentialVerificationRequest = $state({
     requestName: '',
     credentialType: '',
     fields: [],
     settings: {
       allowMultipleUse: false
     }
-  };
+  });
   
   // Current field being edited
-  let currentField: CredentialField = {
+  let currentField: CredentialVerificationField = $state({
     fieldName: '',
     fieldType: FieldType.Text,
-    path: '',
     allowedValues: [],
     required: true
-  };
+  });
   
   let allowedValueInput = '';
   
@@ -51,50 +50,47 @@
   ];
   
   const commonCredentialTypes = [
-    'IdentityCredential',
-    'EducationCredential',
-    'EmploymentCredential',
+    'VerifiableIdentityCredential',
+    'EducationalCredential',
+    'ProfessionalLicense',
     'MembershipCredential',
-    'CertificateCredential',
-    'CustomCredential'
+    'CertificateOfCompletion',
+    'ProofOfEmployment',
+    'HealthPassport'
   ];
   
   function addField() {
-    if (!currentField.fieldName.trim() || !currentField.path.trim()) {
-      error = 'Field name and path are required';
+    if (!currentField.fieldName.trim()) {
+      error = 'Field name is required';
       return;
     }
     
     currentRequest.fields.push({ ...currentField });
     
     // Reset current field
-    currentField = {
-      fieldName: '',
-      fieldType: FieldType.Text,
-      path: '',
-      allowedValues: [],
-      required: true
-    };
+    currentField.fieldName = '';
+    currentField.fieldType = FieldType.Text;
+    currentField.allowedValues = [];
+    currentField.required = true;
     allowedValueInput = '';
   }
   
   function removeField(index: number) {
+    // Create a new array without the removed field
     currentRequest.fields = currentRequest.fields.filter((_, i) => i !== index);
   }
   
   function addAllowedValue() {
     if (!allowedValueInput.trim()) return;
     
-    if (!currentField.allowedValues) {
-      currentField.allowedValues = [];
-    }
-    
-    currentField.allowedValues.push(allowedValueInput.trim());
+    // Create a new array with the added value
+    currentField.allowedValues = [...(currentField.allowedValues || []), allowedValueInput.trim()];
     allowedValueInput = '';
   }
   
   function removeAllowedValue(index: number) {
     if (currentField.allowedValues) {
+      // Create a new array without the removed value
       currentField.allowedValues = currentField.allowedValues.filter((_, i) => i !== index);
     }
   }
@@ -110,20 +106,28 @@
       return;
     }
     
-    verificationRequest.credentialRequests.push({ ...currentRequest });
+    // Add the current request to the list
+    verificationRequest.credentialRequests = [
+      ...verificationRequest.credentialRequests,
+      {
+        requestName: currentRequest.requestName,
+        credentialType: currentRequest.credentialType,
+        fields: [...currentRequest.fields],
+        settings: {
+          allowMultipleUse: currentRequest.settings.allowMultipleUse
+        }
+      }
+    ];
     
     // Reset current request
-    currentRequest = {
-      requestName: '',
-      credentialType: '',
-      fields: [],
-      settings: {
-        allowMultipleUse: false
-      }
-    };
+    currentRequest.requestName = '';
+    currentRequest.credentialType = '';
+    currentRequest.fields = [];
+    currentRequest.settings.allowMultipleUse = false;
   }
   
   function removeCredentialRequest(index: number) {
+    // Create a new array without the removed request
     verificationRequest.credentialRequests = verificationRequest.credentialRequests.filter((_, i) => i !== index);
   }
   
@@ -160,6 +164,20 @@
       }
     };
     createdSession = null;
+  }
+  
+  // Helper functions for template
+  function getFieldLabel(field: CredentialVerificationField): string {
+    return `${field.fieldName} (${field.fieldType})`;
+  }
+  
+  function updateFieldValue<T extends keyof CredentialVerificationField>(field: CredentialVerificationField, key: T, value: CredentialVerificationField[T]) {
+    field[key] = value;
+  }
+  
+  // Update function for template bindings
+  function updateCurrentField<T extends keyof CredentialVerificationField>(key: T, value: CredentialVerificationField[T]) {
+    currentField[key] = value;
   }
 </script>
 
@@ -259,7 +277,8 @@
           <div class="space-y-4">
             <Input
               label="Verification Purpose"
-              bind:value={verificationRequest.metadata.purpose}
+              value={verificationRequest.metadata.purpose}
+              oninput={(e) => verificationRequest.metadata.purpose = (e.target as any).value}
               placeholder="e.g., Identity verification for KYC"
               required
               disabled={loading}
@@ -273,9 +292,11 @@
                 </label>
                 <input
                   type="number"
+                  id="expiration-days"
                   min="1"
                   max="365"
-                  bind:value={verificationRequest.metadata.expirationDays}
+                  value={verificationRequest.metadata.expirationDays}
+                  oninput={(e) => verificationRequest.metadata.expirationDays = parseInt((e.target as any).value) || 30}
                   disabled={loading}
                   class="w-full rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
                 />
@@ -299,7 +320,8 @@
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
                   label="Request Name"
-                  bind:value={currentRequest.requestName}
+                  value={currentRequest.requestName}
+                  oninput={(e) => currentRequest.requestName = (e.target as any).value}
                   placeholder="e.g., Identity Verification"
                   disabled={loading}
                 />
@@ -309,7 +331,9 @@
                   </label>
                   <div class="flex gap-2">
                     <select
-                      bind:value={currentRequest.credentialType}
+                      id="credential-type"
+                      value={currentRequest.credentialType}
+                      onchange={(e) => currentRequest.credentialType = (e.target as any).value}
                       disabled={loading}
                       class="flex-1 rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
                     >
@@ -322,7 +346,8 @@
                     {#if currentRequest.credentialType === 'custom'}
                       <Input
                         placeholder="Custom type..."
-                        bind:value={currentRequest.credentialType}
+                        value={currentRequest.credentialType}
+                        oninput={(e) => currentRequest.credentialType = (e.target as any).value}
                         class="flex-1"
                         disabled={loading}
                       />
@@ -335,7 +360,8 @@
                 <label class="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    bind:checked={currentRequest.settings.allowMultipleUse}
+                    checked={currentRequest.settings.allowMultipleUse}
+                    onchange={(e) => currentRequest.settings.allowMultipleUse = (e.target as any).checked}
                     disabled={loading}
                     class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
                   />
@@ -360,7 +386,8 @@
                     <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <Input
                         label="Field Name"
-                        bind:value={currentField.fieldName}
+                        value={currentField.fieldName}
+                        oninput={(e) => updateCurrentField('fieldName', (e.target as any).value)}
                         placeholder="e.g., fullName"
                         disabled={loading}
                       />
@@ -369,7 +396,9 @@
                           Field Type
                         </label>
                         <select
-                          bind:value={currentField.fieldType}
+                          id="field-type"
+                          value={currentField.fieldType}
+                          onchange={(e) => updateCurrentField('fieldType', (e.target as any).value as FieldType)}
                           disabled={loading}
                           class="w-full rounded-lg border border-outline-variant bg-surface-container-high px-3 py-2 text-sm text-on-surface focus:border-primary focus:outline-none"
                         >
@@ -382,7 +411,8 @@
                         <label class="flex items-center gap-2">
                           <input
                             type="checkbox"
-                            bind:checked={currentField.required}
+                            checked={currentField.required}
+                            onchange={(e) => updateCurrentField('required', (e.target as any).checked)}
                             disabled={loading}
                             class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
                           />
@@ -390,14 +420,6 @@
                         </label>
                       </div>
                     </div>
-                    
-                    <Input
-                      label="JSON Path"
-                      bind:value={currentField.path}
-                      placeholder="e.g., $.name or $.personalInfo.fullName"
-                      disabled={loading}
-                      helperText="Path to the field in the credential"
-                    />
                     
                     {#if currentField.fieldType === FieldType.Select}
                       <div>
@@ -417,7 +439,8 @@
                         
                         <div class="flex gap-2">
                           <Input
-                            bind:value={allowedValueInput}
+                            value={allowedValueInput}
+                            oninput={(e) => allowedValueInput = (e.target as any).value}
                             placeholder="Enter allowed value..."
                             disabled={loading}
                             onkeypress={(e) => e.key === 'Enter' && addAllowedValue()}
@@ -446,7 +469,7 @@
                         onclick={addField}
                         variant="tonal"
                         size="small"
-                        disabled={!currentField.fieldName.trim() || !currentField.path.trim() || loading}
+                        disabled={!currentField.fieldName.trim() || loading}
                       >
                         Add Field
                       </Button>
@@ -462,15 +485,18 @@
                         <div>
                           <div class="font-medium text-on-surface">{field.fieldName}</div>
                           <div class="text-xs text-on-surface-variant">
-                            Type: {field.fieldType} • Path: {field.path}
+                            Type: {field.fieldType}
                             {#if field.required}
                               • <span class="text-error">Required</span>
+                            {/if}
+                            {#if field.allowedValues && field.allowedValues.length > 0}
+                              • Allowed: {field.allowedValues.join(', ')}
                             {/if}
                           </div>
                         </div>
                         <button
                           aria-label="remove field"
-                          on:click={() => removeField(index)}
+                          onclick={() => removeField(index)}
                           disabled={loading}
                           class="text-error hover:text-on-error-container"
                         >
@@ -519,7 +545,7 @@
                         </Badge>
                         <button
                           aria-label="remove credential request"
-                          on:click={() => removeCredentialRequest(index)}
+                          onclick={() => removeCredentialRequest(index)}
                           disabled={loading}
                           class="text-error hover:text-on-error-container"
                         >

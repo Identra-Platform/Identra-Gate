@@ -6,6 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "erd:extract": "ts-node scripts/extract-erd.ts",
     "build": "nest build",
     "build:docs": "node scripts/generate-swagger-md.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

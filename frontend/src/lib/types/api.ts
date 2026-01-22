@@ -303,17 +303,24 @@ export enum FieldType {
   Select = 'select'
 }
 
-export interface CredentialRequest {
+export interface CredentialVerificationField {
+  fieldName: string;
+  fieldType: 'text' | 'date' | 'number' | 'select';
+  allowedValues?: string[];
+  required: boolean;
+}
+
+export interface CredentialVerificationRequest {
   requestName: string;
   credentialType: string;
-  fields: CredentialField[];
+  fields: CredentialVerificationField[];
   settings: {
     allowMultipleUse: boolean;
   };
 }
 
 export interface CreateAuthorizationRequestDto {
-  credentialRequests: CredentialRequest[];
+  credentialRequests: CredentialVerificationRequest[];
   metadata: {
     purpose?: string;
     expirationDays?: number;

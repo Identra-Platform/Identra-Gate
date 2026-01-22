@@ -76,7 +76,7 @@
       <h1 class="text-3xl font-bold text-on-surface">Credential Details</h1>
       <p class="text-on-surface-variant">View detailed information about this credential</p>
     </div>
-    <Button onclick={() => goto("/issuance/issued")} variant="outlined">
+    <Button onclick={() => goto("/credentials/issued")} variant="outlined">
       <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
       </svg>
@@ -152,17 +152,63 @@
             </div>
           </div>
 
-          {#if showQrCode}
+          {#if showQrCode && !isExpired()}
             <div class="flex flex-col items-center space-y-4">
               <QrCodeDisplay
                 data={credential.credentialData.offerData}
               />
+              
+              <!-- Transaction Code/PIN Display -->
+              {#if credential.credentialData.txCode}
+                <div class="w-full max-w-xs rounded-lg border border-outline-variant bg-surface-container p-4">
+                  <div class="mb-2 text-center">
+                    <p class="text-sm font-medium text-on-surface-variant">User PIN</p>
+                    <div class="mt-2 flex items-center justify-center">
+                      <div class="flex items-center justify-center space-x-2">
+                        {#each credential.credentialData.txCode.split('') as digit, i}
+                          <div class="flex h-12 w-10 items-center justify-center rounded-lg bg-surface-container-high text-2xl font-bold text-on-surface">
+                            {digit}
+                          </div>
+                        {/each}
+                      </div>
+                    </div>
+                    <p class="mt-2 text-xs text-on-surface-variant">
+                      Enter this 4-digit PIN when prompted to retrieve the credential
+                    </p>
+                  </div>
+                  
+                  <div class="mt-3 flex justify-center">
+                    <Button
+                      variant="text"
+                      size="small"
+                      onclick={() => copyToClipboard(credential?.credentialData?.txCode ?? '')}
+                      class="text-sm"
+                    >
+                      <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copy PIN
+                    </Button>
+                  </div>
+                </div>
+              {/if}
               
               <div class="text-center">
                 <p class="text-sm text-on-surface-variant">
                   Scan this QR code to retrieve the credential offer
                 </p>
               </div>
+            </div>
+          {:else if showQrCode && isExpired()}
+            <div class="rounded-lg border-2 border-dashed border-error/20 bg-error/5 p-8 text-center">
+              <svg class="mx-auto h-12 w-12 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.73 0L4.346 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <h4 class="mt-4 text-lg font-medium text-error">Credential Expired</h4>
+              <p class="mt-2 text-sm text-on-surface-variant">
+                This credential expired on {formatDate(credential.expiration)}. 
+                QR code is no longer available for scanning.
+              </p>
             </div>
           {:else}
             <div class="rounded-lg border-2 border-dashed border-outline-variant p-8 text-center">
@@ -324,7 +370,7 @@
         The credential with ID "{credentialId}" could not be found.
       </p>
       <div class="mt-6">
-        <Button onclick={() => goto("/issuance/issued")} variant="filled">
+        <Button onclick={() => goto("/credentials/issued")} variant="filled">
           Browse Credentials
         </Button>
       </div>

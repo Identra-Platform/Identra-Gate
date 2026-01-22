@@ -56,86 +56,91 @@ export class VerificationService {
   async getVerificationResults(id: string) {
     const session = await this.verificationSessionRepository.findOneOrFail({
       where: { id },
+      relations: ['verifier']
     });
-    const response = await this.openId4VcService.getVerificationResponse(
-      session.request.id,
-    );
+    try {
+      const response = await this.openId4VcService.getVerificationResponse(
+        session.request.id,
+      );
 
-    const isVerified = response?.dcql?.presentationResult.can_be_satisfied;
-    const status = isVerified
-      ? 'success'
-      : typeof isVerified === 'undefined'
-        ? 'pending'
-        : 'failed';
-    let results:
-      | Record<
-          string,
-          {
-            status: string;
-            claims?: Record<string, any>[];
-          }
-        >
-      | undefined = undefined;
+      const isVerified = response?.dcql?.presentationResult.can_be_satisfied;
+      const status = isVerified
+        ? 'success'
+        : typeof isVerified === 'undefined'
+          ? 'pending'
+          : 'failed';
+      let results:
+        | Record<
+            string,
+            {
+              status: string;
+              claims?: Record<string, any>[];
+            }
+          >
+        | undefined = undefined;
 
-    if (status === 'success') {
-      results = {};
+      if (status === 'success') {
+        results = {};
 
-      const queryIdToCredentialType = new Map<string, string>();
-      session.requestedCredentials.forEach((req, index) => {
-        const queryId = Object.keys(
+        const queryIdToCredentialType = new Map<string, string>();
+        session.requestedCredentials.forEach((req, index) => {
+          const queryId = Object.keys(
+            response?.dcql?.presentationResult.credential_matches!,
+          )[index];
+          queryIdToCredentialType.set(queryId, req.credentialType);
+        });
+
+        Object.entries(
           response?.dcql?.presentationResult.credential_matches!,
-        )[index];
-        queryIdToCredentialType.set(queryId, req.credentialType);
-      });
+        ).forEach(([queryId, match]) => {
+          const credentialType = queryIdToCredentialType.get(queryId);
+          if (!credentialType) return;
 
-      Object.entries(
-        response?.dcql?.presentationResult.credential_matches!,
-      ).forEach(([queryId, match]) => {
-        const credentialType = queryIdToCredentialType.get(queryId);
-        if (!credentialType) return;
+          // Get the requested fields for this credential type
+          const requestedCredential = session.requestedCredentials.find(
+            (req) => req.credentialType === credentialType,
+          );
+          const requestedFields = requestedCredential?.fields || [];
 
-        // Get the requested fields for this credential type
-        const requestedCredential = session.requestedCredentials.find(
-          (req) => req.credentialType === credentialType,
-        );
-        const requestedFields = requestedCredential?.fields || [];
+          if (match.success && match.valid_credentials?.length > 0) {
+            const credentials = match.valid_credentials.map((cred) => {
+              const claims = cred.claims.valid_claim_sets.map((claim) => {
+                // Filter claims to only include requested fields
+                const filteredClaims = this.filterClaimsByFields(
+                  claim.output,
+                  requestedFields,
+                );
+                return filteredClaims;
+              });
 
-        if (match.success && match.valid_credentials?.length > 0) {
-          const credentials = match.valid_credentials.map((cred) => {
-            const claims = cred.claims.valid_claim_sets.map((claim) => {
-              // Filter claims to only include requested fields
-              const filteredClaims = this.filterClaimsByFields(
-                claim.output,
-                requestedFields,
-              );
-              return filteredClaims;
+              return {
+                claims: claims.length === 1 ? claims[0] : claims,
+              };
             });
 
-            return {
-              claims: claims.length === 1 ? claims[0] : claims,
+            results![credentialType] = {
+              status: 'success',
+              claims: credentials,
             };
-          });
+          } else {
+            results![credentialType] = {
+              status: 'failed',
+            };
+          }
+        });
+      }
 
-          results![credentialType] = {
-            status: 'success',
-            claims: credentials,
-          };
-        } else {
-          results![credentialType] = {
-            status: 'failed',
-          };
-        }
-      });
-    }
-
-    session.results = results;
-    await this.verificationSessionRepository.save(session);
+      session.results = results;
+      await this.verificationSessionRepository.save(session);
+    } catch {}
 
     return session;
   }
 
   async getVerificationSessions() {
-    return this.verificationSessionRepository.find();
+    return this.verificationSessionRepository.find({
+      relations: ['verifier']
+    });
   }
 
   private filterClaimsByFields(claims: Record<string, any>, fields: string[]): Record<string, any> {
