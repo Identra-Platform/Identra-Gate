@@ -55,8 +55,7 @@
   }
   
   function isExpired(): boolean {
-    if (!credential) return false;
-    return new Date(credential.expiration) < new Date();
+    return credential?.status === 'expired';
   }
   
   function copyToClipboard(text: string) {
@@ -206,7 +205,7 @@
               </svg>
               <h4 class="mt-4 text-lg font-medium text-error">Credential Expired</h4>
               <p class="mt-2 text-sm text-on-surface-variant">
-                This credential expired on {formatDate(credential.expiration)}. 
+                This credential expired on {formatDate(credential.expiresAt)}. 
                 QR code is no longer available for scanning.
               </p>
             </div>
@@ -253,12 +252,12 @@
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div class="rounded-lg bg-surface-container p-4">
                 <div class="mb-1 text-sm font-medium text-on-surface-variant">Created</div>
-                <div class="text-sm text-on-surface">{formatDate(credential.createdAt)}</div>
+                <div class="text-sm text-on-surface">{formatDate(credential.issuedAt)}</div>
               </div>
               <div class="rounded-lg bg-surface-container p-4">
                 <div class="mb-1 text-sm font-medium text-on-surface-variant">Expiration</div>
                 <div class="text-sm text-on-surface {isExpired() ? 'text-error' : ''}">
-                  {formatDate(credential.expiration)}
+                  {formatDate(credential.expiresAt)}
                 </div>
               </div>
             </div>

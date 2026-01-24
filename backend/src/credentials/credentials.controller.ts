@@ -6,6 +6,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { type Request } from 'express';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UserRole } from 'src/users/types/user-role.type';
+import { ActivityAction } from 'src/audit/entities/activity.entity';
+import { ActivityLog } from 'src/audit/decorators/activity-log.decorator';
 
 @ApiTags('Credentials')
 @Controller('credentials')
@@ -16,6 +18,9 @@ export class CredentialsController {
 
   @UseGuards(AuthGuard('jwt'))
   @Roles(UserRole.Admin, UserRole.Issuer)
+  @ActivityLog({
+    action: ActivityAction.IssueCredential
+  })
   @Post()
   createCredentialOffer(
     @Req() request: Request,

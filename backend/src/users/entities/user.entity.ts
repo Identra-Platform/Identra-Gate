@@ -33,6 +33,7 @@ export class User {
   roles: UserRole[];
 
   @Column()
+  @Exclude({ toPlainOnly: true })
   password: string;
 
   @OneToMany(() => LoginAttempt, loginAttempt => loginAttempt.user)

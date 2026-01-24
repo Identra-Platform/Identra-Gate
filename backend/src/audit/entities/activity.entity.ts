@@ -8,7 +8,16 @@ export enum ActivityStatus {
 
 export enum ActivityAction {
   Login = 'login',
-  Logout = 'logout'
+  Logout = 'logout',
+  CreateUser = 'create user',
+  UpdateUser = 'update user',
+  DeleteUser = 'delete user',
+  CreateTemplate = 'create template',
+  UpdateTemplate = 'update template',
+  DeleteTemplate = 'delete template',
+  IssueCredential = 'issue credential',
+  VerifyCredential = 'verify credential',
+  ResolveVerification = 'resolve verification'
 }
 
 @Entity()

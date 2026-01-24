@@ -7,6 +7,7 @@
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { getAllCredentials } from '$lib/utils/api';
+	import type { CredentialOfferResponse } from '$lib/types/api';
   
   let credentials: any[] = [];
   let loading = true;
@@ -15,7 +16,7 @@
   let searchQuery = '';
   let statusFilter = '';
   
-  const statuses = ['pending', 'issued', 'verified', 'expired', 'revoked'];
+  const statuses = ['pending', 'issued', 'expired'];
   
   onMount(async () => {
     await loadCredentials();
@@ -52,10 +53,8 @@
   function getStatusColor(status: string): string {
     switch (status) {
       case 'issued': return 'bg-blue-100 text-blue-800';
-      case 'verified': return 'bg-green-100 text-green-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'expired': return 'bg-orange-100 text-orange-800';
-      case 'revoked': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   }
@@ -84,9 +83,8 @@
     }
   }
   
-  function isExpired(credential: any): boolean {
-    if (!credential.expiresAt) return false;
-    return new Date(credential.expiresAt) < new Date();
+  function isExpired(credential: CredentialOfferResponse): boolean {
+    return credential.status === 'expired';
   }
   
   function getCredentialType(credential: any): string {
@@ -260,12 +258,13 @@
                 </td>
                 <td class="px-6 py-4">
                   <div class="flex flex-col gap-1">
-                    <Badge class={getStatusColor(credential.status)}>
-                      {formatStatus(credential.status)}
-                    </Badge>
                     {#if isExpired(credential)}
                       <Badge class="bg-red-100 text-red-800 text-xs">
                         Expired
+                      </Badge>
+                    {:else}
+                      <Badge class={getStatusColor(credential.status)}>
+                        {formatStatus(credential.status)}
                       </Badge>
                     {/if}
                   </div>
@@ -298,17 +297,6 @@
                     >
                       View Details
                     </Button>
-                    {#if credential.status !== 'revoked' && credential.status !== 'expired'}
-                      <Button
-                        onclick={() => goto(`/credentials/revoke/${credential.id}`)}
-                        variant="text"
-                        size="small"
-                        class="text-error hover:text-on-error-container"
-                        fullWidth
-                      >
-                        Revoke
-                      </Button>
-                    {/if}
                   </div>
                 </td>
               </tr>

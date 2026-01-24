@@ -30,6 +30,9 @@ export class VerificationSession {
     claims?: Array<Record<string, any>>;
   }>;
 
+  @Column()
+  status: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

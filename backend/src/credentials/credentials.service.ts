@@ -8,6 +8,7 @@ import { TemplatesService } from './templates/templates.service';
 import { Credential } from './entities/credential.entity';
 import { CredentialTemplate } from './templates/entities/credential-template.entity';
 import { User } from 'src/users/entities/user.entity';
+import { classToPlain, instanceToPlain } from 'class-transformer';
 
 @Injectable()
 export class CredentialsService {
@@ -66,14 +67,19 @@ export class CredentialsService {
   }
 
   async getCredentialById(id: string) {
-    return this.credentialRepository.findOne({
+    const credential = await this.credentialRepository.findOne({
       where: { id },
       relations: ['issuer']
     });
+    return instanceToPlain(credential);
   }
 
   async getAllCredentials() {
-    return this.credentialRepository.find();
+    return this.credentialRepository.find({
+      order: {
+        issuedAt: 'DESC'
+      }
+    });
   }
 
   private scheduleEpiration(credentialId: string, expiresIn: number) {

@@ -7,10 +7,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { VerificationSession } from './entities/verification-session.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
-import { stat } from 'fs';
 
 @Injectable()
 export class VerificationService {
+  private expirationTimers = new Map<string, NodeJS.Timeout>();
+
   constructor(
     private readonly openId4VcService: OpenId4VcService,
     @InjectRepository(VerificationSession)
@@ -33,7 +34,9 @@ export class VerificationService {
     const expiresIn =
       (await this.openId4VcService.getAgent()).openid4vc.verifier?.config
         .authorizationRequestExpiresInSeconds ?? 300;
+    
     const session = this.verificationSessionRepository.create({
+      status: 'pending',
       verifier,
       request: {
         id: request.requestId,
@@ -50,6 +53,10 @@ export class VerificationService {
     });
 
     await this.verificationSessionRepository.save(session);
+    
+    // Schedule expiration
+    this.scheduleExpiration(session.id, expiresIn);
+    
     return session;
   }
 
@@ -58,6 +65,12 @@ export class VerificationService {
       where: { id },
       relations: ['verifier']
     });
+
+    // Clear expiration timer if session is already completed/expired
+    if (session.status !== 'pending') {
+      this.clearExpirationTimer(id);
+    }
+
     try {
       const response = await this.openId4VcService.getVerificationResponse(
         session.request.id,
@@ -69,6 +82,10 @@ export class VerificationService {
         : typeof isVerified === 'undefined'
           ? 'pending'
           : 'failed';
+      
+      // Update session status
+      session.status = status;
+
       let results:
         | Record<
             string,
@@ -132,7 +149,15 @@ export class VerificationService {
 
       session.results = results;
       await this.verificationSessionRepository.save(session);
-    } catch {}
+
+      // Clear expiration timer if session is completed
+      if (status !== 'pending') {
+        this.clearExpirationTimer(id);
+      }
+
+    } catch (error) {
+      return session;
+    }
 
     return session;
   }
@@ -143,34 +168,68 @@ export class VerificationService {
     });
   }
 
-  private filterClaimsByFields(claims: Record<string, any>, fields: string[]): Record<string, any> {
-  const filtered: Record<string, any> = {};
-    
-  for (const field of fields) {
-    const pathParts = field.split('.');
-    let current = claims;
-    let target = filtered;
+  private scheduleExpiration(sessionId: string, expiresIn: number) {
+    const timer = setTimeout(async () => {
+      await this.handleSessionExpiration(sessionId);
+    }, expiresIn * 1000);
 
-    for (let i = 0; i < pathParts.length - 1; i++) {
-      if (current[pathParts[i]] !== undefined) {
-        if (!target[pathParts[i]]) {
-          target[pathParts[i]] = {};
-        }
-        target = target[pathParts[i]];
-        current = current[pathParts[i]];
-      } else {
-        break;
-      }
-    }
+    this.expirationTimers.set(sessionId, timer);
+  }
 
-    const lastKey = pathParts[pathParts.length - 1];
-    if (current[lastKey] !== undefined) {
-      target[lastKey] = current[lastKey];
+  private clearExpirationTimer(sessionId: string) {
+    const timer = this.expirationTimers.get(sessionId);
+    if (timer) {
+      clearTimeout(timer);
+      this.expirationTimers.delete(sessionId);
     }
   }
-    
-  return filtered;
-}
+
+  private async handleSessionExpiration(sessionId: string) {
+    try {
+      const session = await this.verificationSessionRepository.findOne({
+        where: { id: sessionId }
+      });
+
+      if (session && session.status === 'pending') {
+        session.status = 'expired';
+        await this.verificationSessionRepository.save(session);
+        console.log(`Verification session ${sessionId} expired`);
+      }
+
+      this.expirationTimers.delete(sessionId);
+    } catch (error) {
+      console.error('Error handling verification session expiration:', error);
+    }
+  }
+
+  private filterClaimsByFields(claims: Record<string, any>, fields: string[]): Record<string, any> {
+    const filtered: Record<string, any> = {};
+      
+    for (const field of fields) {
+      const pathParts = field.split('.');
+      let current = claims;
+      let target = filtered;
+
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        if (current[pathParts[i]] !== undefined) {
+          if (!target[pathParts[i]]) {
+            target[pathParts[i]] = {};
+          }
+          target = target[pathParts[i]];
+          current = current[pathParts[i]];
+        } else {
+          break;
+        }
+      }
+
+      const lastKey = pathParts[pathParts.length - 1];
+      if (current[lastKey] !== undefined) {
+        target[lastKey] = current[lastKey];
+      }
+    }
+      
+    return filtered;
+  }
 
   private convertToDcql(dto: CreateAuthorizationRequestDto): DcqlQuery {
     const credentials = dto.credentialRequests.map((credRequest, index) => {
@@ -215,5 +274,11 @@ export class VerificationService {
     return {
       credentials,
     };
+  }
+
+  // Optional: Clean up all timers when service is destroyed
+  onModuleDestroy() {
+    this.expirationTimers.forEach(timer => clearTimeout(timer));
+    this.expirationTimers.clear();
   }
 }

@@ -18,6 +18,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, 
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UserRole } from './types/user-role.type';
+import { ActivityAction } from 'src/audit/entities/activity.entity';
+import { ActivityLog } from 'src/audit/decorators/activity-log.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -26,6 +28,9 @@ export class UsersController {
 
   @UseGuards(AuthGuard('jwt'))
   @Roles(UserRole.Admin)
+  @ActivityLog({
+    action: ActivityAction.CreateUser
+  })
   @Post()
   @UsePipes(new ValidationPipe({ transform: true }))
   create(@Body() createUserDto: CreateUserDto) {
@@ -53,6 +58,9 @@ export class UsersController {
 
   @UseGuards(AuthGuard('jwt'))
   @Roles(UserRole.Admin)
+  @ActivityLog({
+    action: ActivityAction.UpdateUser
+  })
   @Patch(':id')
   @UsePipes(new ValidationPipe({ transform: true }))
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
@@ -61,6 +69,9 @@ export class UsersController {
 
   @UseGuards(AuthGuard('jwt'))
   @Roles(UserRole.Admin)
+  @ActivityLog({
+    action: ActivityAction.DeleteUser
+  })
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);

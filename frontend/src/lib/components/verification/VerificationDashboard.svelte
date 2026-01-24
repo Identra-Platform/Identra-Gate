@@ -11,13 +11,12 @@
 	import { getVerificationSessions } from '$lib/utils/api';
 	import Loading from '../ui/Loading.svelte';
   
-  export let activeSection: 'dashboard' | 'create' | 'pending' | 'history' = 'dashboard';
+  export let activeSection: 'dashboard' | 'create' | 'sessions' = 'dashboard';
   
   const sections = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     { id: 'create', label: 'Create Request', icon: 'create' },
-    { id: 'pending', label: 'Pending', icon: 'pending' },
-    { id: 'history', label: 'History', icon: 'history' }
+    { id: 'sessions', label: 'Sessions', icon: 'sessions' },
   ];
 
   let verificationSessions = getVerificationSessions();
@@ -104,9 +103,7 @@
     
   {:else if activeSection === 'create'}
     <svelte:component this={CreateVerificationRequest} />
-  {:else if activeSection === 'pending'}
+  {:else if activeSection === 'sessions'}
     <svelte:component this={VerificationSessions} />
-  {:else if activeSection === 'history'}
-    <svelte:component this={VerificationHistory} />
   {/if}
 </div>

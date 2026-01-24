@@ -60,7 +60,7 @@
     switch (status?.toLowerCase()) {
       case 'success': return 'bg-green-100 text-green-800';
       case 'failed': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'expired': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   }
@@ -156,20 +156,9 @@
         <div>
           <div class="mb-2 flex items-center gap-3">
             <h2 class="text-xl font-bold text-on-surface">Verification Session</h2>
-            {#if verification.results}
-              <Badge size="large" class={getStatusColor(verification.status)}>
-                {formatStatus(verification.status)}
-              </Badge>
-            {:else}
-              <Badge size="large" class={getStatusColor('pending')}>
-                Pending
-              </Badge>
-            {/if}
-            {#if isExpired()}
-              <Badge size="large" class="bg-red-100 text-red-800">
-                Expired
-              </Badge>
-            {/if}
+            <Badge size="large" class={getStatusColor(verification.status)}>
+              {formatStatus(verification.status)}
+            </Badge>
           </div>
           
           <div class="space-y-1 text-sm text-on-surface-variant">

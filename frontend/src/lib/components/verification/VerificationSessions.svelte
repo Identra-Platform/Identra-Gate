@@ -334,17 +334,6 @@
                 >
                   View Details
                 </Button>
-                
-                {#if !verification.results && !isExpired(verification.expiresAt)}
-                  <Button
-                    onclick={() => refreshVerification(verification.id)}
-                    variant="tonal"
-                    size="small"
-                    fullWidth
-                  >
-                    Check Results
-                  </Button>
-                {/if}
               </div>
             </div>
           </div>

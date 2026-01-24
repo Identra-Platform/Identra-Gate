@@ -379,7 +379,7 @@
               <label for="tags" class="block text-sm font-medium text-on-surface-variant mb-1">
                 Tags
               </label>
-              <div class="flex gap-2">
+              <div class="flex gap-2 items-center">
                 <Input
                   bind:value={newTag}
                   placeholder="Add a tag"
@@ -406,7 +406,7 @@
       <Card elevation={2} padding="large">
         <h3 class="mb-4 text-lg font-semibold text-on-surface">Display Configuration</h3>
         
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4">
           <div>
             <label for="color-presets" class="block text-sm font-medium text-on-surface-variant mb-2">
               Color Presets
@@ -437,7 +437,7 @@
                 <label for="background-color" class="block text-sm font-medium text-on-surface-variant mb-1">
                   Background Color
                 </label>
-                <div class="flex gap-2">
+                <div class="flex gap-2 items-center">
                   <input
                     name="background-color"
                     type="color"
@@ -458,7 +458,7 @@
                 <label for="text-color" class="block text-sm font-medium text-on-surface-variant mb-1">
                   Text Color
                 </label>
-                <div class="flex gap-2">
+                <div class="flex gap-2 items-center">
                   <input
                     name="text-color"
                     type="color"
@@ -639,7 +639,7 @@
               type="number"
               bind:value={newField.order}
               disabled={loading}
-              class="w-24"
+              class="w-24 p-2"
             />
           </div>
           

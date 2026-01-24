@@ -41,7 +41,7 @@
 			outlined: 'border border-emerald-500 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300'
 		},
 		error: {
-			filled: 'bg-red-500 text-white dark:bg-rose-700 dark:text-rose-50',
+			filled: 'bg-red-400 text-white dark:bg-rose-700 dark:text-rose-50',
 			outlined: 'border border-rose-500 text-rose-700 dark:border-rose-400 dark:text-rose-300'
 		},
 		warning: {

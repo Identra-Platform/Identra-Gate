@@ -212,8 +212,8 @@ export interface CredentialOfferResponse {
   claims: Record<string, any>;
   credentialData: Record<string, any>;
   status: string;
-  createdAt: string;
-  expiration: string;
+  issuedAt: string;
+  expiresAt: string;
   issuer: User;
 }
 

@@ -5,6 +5,8 @@ import { UpdateTemplateDto } from './dto/update-template.dto';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { UserRole } from 'src/users/types/user-role.type';
+import { ActivityLog } from 'src/audit/decorators/activity-log.decorator';
+import { ActivityAction } from 'src/audit/entities/activity.entity';
 
 @Controller('templates')
 export class TemplatesController {
@@ -12,6 +14,9 @@ export class TemplatesController {
 
   @UseGuards(AuthGuard('jwt'))
   @Roles(UserRole.Admin, UserRole.Issuer)
+  @ActivityLog({
+    action: ActivityAction.CreateTemplate
+  })
   @Post()
   create(@Body() createTemplateDto: CreateTemplateDto) {
     return this.templatesService.create(createTemplateDto);
@@ -33,6 +38,9 @@ export class TemplatesController {
 
   @UseGuards(AuthGuard('jwt'))
   @Roles(UserRole.Admin, UserRole.Issuer)
+  @ActivityLog({
+    action: ActivityAction.UpdateTemplate
+  })
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateTemplateDto: UpdateTemplateDto) {
     return this.templatesService.update(id, updateTemplateDto);
@@ -40,6 +48,9 @@ export class TemplatesController {
 
   @UseGuards(AuthGuard('jwt'))
   @Roles(UserRole.Admin, UserRole.Issuer)
+  @ActivityLog({
+    action: ActivityAction.DeleteTemplate
+  })
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.templatesService.remove(id);
