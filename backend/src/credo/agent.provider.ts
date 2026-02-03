@@ -152,6 +152,7 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
         ...openId4VcConfig,
         issuer: config.issuer.enabled ? {
           ...openId4VcConfig.issuer,
+          statefulCredentialOfferExpirationInSeconds: config.issuer.credentialOfferExpiresInSeconds,
           credentialRequestToCredentialMapper: this.createCredentialRequestHandler(),
         } : undefined,
       }),
@@ -297,7 +298,7 @@ export class AgentProvider implements OnModuleInit, OnModuleDestroy {
       credentialConfigurationsSupported: config,
       batchCredentialIssuance: settings.allowBatchIssuance ? {
         batchSize: settings.maxBatchSize,
-      } : undefined,
+      } : undefined
     });
   }
 

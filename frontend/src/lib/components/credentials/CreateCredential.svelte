@@ -75,6 +75,8 @@
           value
         };
       });
+
+      console.log(JSON.stringify(templateFields, null, 2));
       
     } catch (err: any) {
       error = `Failed to load template: ${err.message}`;
@@ -150,24 +152,12 @@
     
     templateFields.forEach(field => {
       if (field.value.trim()) {
-        // Build nested object based on path
-        let current: any = claims;
-        for (let i = 0; i < field.path.length - 1; i++) {
-          const pathPart = field.path[i];
-          if (!current[pathPart]) {
-            current[pathPart] = {};
-          }
-          current = current[pathPart];
-        }
-        
-        const lastPath = field.path[field.path.length - 1];
-        // Convert value based on type
         if (field.type === 'number') {
-          current[lastPath] = parseFloat(field.value);
+          claims[field.name] = parseFloat(field.value);
         } else if (field.type === 'boolean') {
-          current[lastPath] = field.value.toLowerCase() === 'true';
+          claims[field.name] = field.value.toLowerCase() === 'true';
         } else {
-          current[lastPath] = field.value;
+          claims[field.name] = field.value;
         }
       }
     });

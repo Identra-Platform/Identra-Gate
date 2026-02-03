@@ -4,7 +4,7 @@
   import Input from '$lib/components/ui/Input.svelte';
   import Badge from '$lib/components/ui/Badge.svelte';
   import { goto } from '$app/navigation';
-  import { getTemplates } from '$lib/utils/api';
+  import { deleteTemplate, getTemplates } from '$lib/utils/api';
 	import type { Template, TemplateTag } from '$lib/types/api';
 
   let searchQuery = '';
@@ -92,19 +92,14 @@
   }
   
   // Function to handle template deletion
-  async function deleteTemplate(id: string, name: string) {
+  async function removeTemplate(id: string, name: string) {
     if (confirm(`Are you sure you want to delete template "${name}"?`)) {
       try {
         // Call delete API
-        const response = await fetch(`/api/templates/${id}`, {
-          method: 'DELETE'
-        });
+        const response = await deleteTemplate(id);
         
-        if (response.ok) {
-          // Remove from local array
+        if (response.status === 200) {
           templates = templates.filter(t => t.id !== id);
-          // Show success message
-          alert('Template deleted successfully');
         } else {
           throw new Error('Failed to delete template');
         }
@@ -309,7 +304,7 @@
               {/if}
             </Button>
             <Button
-              onclick={() => deleteTemplate(template.id, template.name)}
+              onclick={() => removeTemplate(template.id, template.name)}
               variant="text"
               size="small"
             >

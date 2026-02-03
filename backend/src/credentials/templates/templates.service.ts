@@ -31,6 +31,33 @@ export class TemplatesService {
     private readonly openId4VcService: OpenId4VcService
   ) {}
 
+  private async updateIssuerConfiguration(completeTemplate: CredentialTemplate) {
+    try {
+      const issuerRecord = await this.openId4VcService.getIssuer();
+      if (!issuerRecord) {
+        throw new Error('Issuer not found or agent not initialized');
+      }
+      const issuer = (await this.openId4VcService.getAgent()).openid4vc.issuer;
+      if (!issuer) {
+        throw new Error('OpenID4VC issuer not available');
+      }
+      const currentConfigurations = issuerRecord.credentialConfigurationsSupported;
+      const newCredentialConfig = completeTemplate.toOpenId4Vc();
+
+      const updatedConfigurations: OpenId4VciCredentialConfigurationsSupportedWithFormats = {
+        ...currentConfigurations,
+        [completeTemplate.id]: newCredentialConfig
+      };
+
+      await issuer.updateIssuerMetadata({
+        issuerId: issuerRecord.issuerId,
+        credentialConfigurationsSupported: updatedConfigurations
+      });
+    } catch (error: any) {
+      throw new Error(`Failed to update issuer configuration: ${error.message}`);
+    }
+  }
+
   async create(createDto: CreateTemplateDto) {
     try {
       // Check if template with similar name exists
@@ -86,24 +113,12 @@ export class TemplatesService {
       }
 
       // Reload with relations
-      const completeTemplate = await this.templateRepository.findOne({
+      const completeTemplate = await this.templateRepository.findOneOrFail({
         where: { id: savedTemplate.id },
         relations: ['fields', 'tags'],
       });
 
-      const issuerRecord = await this.openId4VcService.getIssuer()!;
-      if (!issuerRecord) throw new Error('Agent not Initialized');
-      const issuer = (await this.openId4VcService.getAgent()).openid4vc.issuer!;
-      const currentConfigurations = issuerRecord.credentialConfigurationsSupported;
-      const newCredentialConfig = completeTemplate!.toOpenId4Vc();
-      const updatedConfigurations: OpenId4VciCredentialConfigurationsSupportedWithFormats = {  
-        ... currentConfigurations,
-        newCredentialConfig
-      }; 
-      await issuer.updateIssuerMetadata({
-        issuerId: issuerRecord.issuerId,
-        credentialConfigurationsSupported: updatedConfigurations
-      });
+      await this.updateIssuerConfiguration(completeTemplate);
 
       return completeTemplate;
     } catch (error) {
@@ -295,6 +310,7 @@ export class TemplatesService {
     try {
       const template = await this.templateRepository.findOne({
         where: { id },
+        relations: ['fields', 'tags']
       });
 
       if (!template) {

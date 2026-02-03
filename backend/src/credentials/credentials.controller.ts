@@ -44,7 +44,9 @@ export class CredentialsController {
   @UseGuards(AuthGuard('jwt'))
   @Roles(UserRole.Admin, UserRole.Issuer)
   @Get()
-  getAllCredential() {
-    return this.credentialsService.getAllCredentials();
+  async getAllCredential() {
+    const data = await this.credentialsService.getAllCredentials();
+    console.log(JSON.stringify(data, null, 2));
+    return data;
   }
 }

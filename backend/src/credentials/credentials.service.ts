@@ -69,7 +69,7 @@ export class CredentialsService {
   async getCredentialById(id: string) {
     const credential = await this.credentialRepository.findOne({
       where: { id },
-      relations: ['issuer']
+      relations: ['issuer', 'template']
     });
     return instanceToPlain(credential);
   }
@@ -108,7 +108,6 @@ export class CredentialsService {
   }
 
   private validateClaims(credential: any, claims: Record<string, any>) {
-    console.log(JSON.stringify(credential, null, 2));
     for (const field of credential.fields) {
       if (field.required && !claims[field.name]) {
         throw new Error(`Missing required field: ${field.name}`);

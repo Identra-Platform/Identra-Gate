@@ -209,11 +209,13 @@ export async function createCredentialOffer(data: CreateCredentialOfferDto): Pro
 
 export async function getCredentialById(id: string) {
   const response = await api.get<CredentialOfferResponse>(`/credentials/${id}`);
+  console.log(JSON.stringify(response, null, 2));
   return response.data;
 }
 
 export async function getAllCredentials() {
   const response = await api.get<CredentialOfferResponse[]>('/credentials');
+  console.log(JSON.stringify(response, null, 2));
   return response.data;
 }
 
@@ -230,6 +232,11 @@ export async function getTemplates() {
 export async function getTemplateById(id: string) {
   const response = await api.get<Template>(`/templates/${id}`);
   return response.data;
+}
+
+export async function deleteTemplate(id: string) {
+  const response = await api.delete<void>(`/templates/${id}`);
+  return response;
 }
 
 
